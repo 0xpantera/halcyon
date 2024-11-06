@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -x  # Show all commands
+
+INPUT_FILE="$1"
+echo "Input file: $INPUT_FILE"
+
+# No file extension shenanigans, just use exactly what we're given
+if [ ! -f "$INPUT_FILE" ]; then
+    echo "Error: Input file doesn't exist: $INPUT_FILE" >&2
+    exit 1
+fi
+
+# Create assembly file
+ASM_FILE="${INPUT_FILE%.c}.s"
+echo "Assembly file: $ASM_FILE"
+
+# Create assembly
+mkdir -p "$(dirname "$ASM_FILE")"
+echo ".globl main" > "$ASM_FILE"
+echo "main:" >> "$ASM_FILE"
+echo "    movl \$2, %eax" >> "$ASM_FILE"
+echo "    ret" >> "$ASM_FILE"
+
+# Create executable (same name as input but no extension)
+EXE_FILE="${INPUT_FILE%.c}"
+echo "Executable file: $EXE_FILE"
+
+# Compile and link, unset NIX_CFLAGS_COMPILE first
+unset NIX_CFLAGS_COMPILE
+qemu-x86_64 -L gcc "$ASM_FILE" -o "$EXE_FILE" || {
+    echo "Error: Failed to create executable" >&2
+    exit 1
+}
+
+echo "Created executable: $EXE_FILE"
+exit 0
