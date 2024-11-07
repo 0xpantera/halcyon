@@ -5,10 +5,12 @@ module Main where
 import Settings
 import Lexer (lexer)
 import Tokens
+import Parse (parse)  -- Import the parse function
+import Ast
 
 import Control.Exception (catch, IOException)
 import System.FilePath (isExtensionOf, replaceExtension, takeDirectory, takeFileName, replaceExtension, (</>))
-import System.IO (hPutStrLn, stderr, appendFile)
+import System.IO (hPutStrLn, stderr, stdout, appendFile)
 import Options.Applicative
 import System.Process.Typed
 import System.Directory (getCurrentDirectory, removeFile, makeAbsolute)
@@ -135,9 +137,19 @@ processStage AppOptions{..} preprocessedFile = do
         Right tokens -> do
           hPutStrLn stderr $ "Lexer succeeded, tokens: " ++ show tokens
     Parse -> do
-      tokens <- runLexStage preprocessedFile
-      -- TODO: Run parser on tokens
-      return ()
+      hPutStrLn stderr "Running parser..."
+      case runParser lexer preprocessedFile input of
+        Left err -> do
+          hPutStrLn stderr $ "Lexer error: " ++ errorBundlePretty err
+          exitFailure
+        Right tokens -> 
+          case parse tokens of
+            Left err -> do
+              hPutStrLn stderr $ "Parser error: " ++ errorBundlePretty err
+              exitFailure
+            Right ast -> do
+              hPutStrLn stderr $ "Parser succeeded, AST: " ++ show ast
+              
     Codegen -> do
       tokens <- runLexStage preprocessedFile
       -- TODO: Run parser and codegen
@@ -160,21 +172,14 @@ main :: IO ()
 main = do
   args <- getArgs
   let debugMsg = "Args: " ++ show args ++ "\n"
-  hPutStrLn stderr debugMsg
-  appendFile "compiler_debug.log" debugMsg
+  hPutStrLn stdout debugMsg
   
-  options <- execParser opt
-  let optionsMsg = "Parsed options: " ++ show options ++ "\n"
+  opts <- execParser opt
+  let optionsMsg = "Parsed options: " ++ show opts ++ "\n"
   hPutStrLn stderr optionsMsg
-  appendFile "compiler_debug.log" optionsMsg
 
-  options <- execParser opt
-  preprocessedFile <- preprocess options
-  --runProcess_ processConfig
-  -- Get the path to the preprocessed file
-  --let preprocessedFile = replaceExt options
-  -- Process the file according to the specified stage
-  processStage options preprocessedFile
+  preprocessedFile <- preprocess opts
+  processStage opts preprocessedFile
   where
     opt = info (helper <*> appOptionsParser) $
       progDesc "A compiler for a subset of C. Written in Haskell."
