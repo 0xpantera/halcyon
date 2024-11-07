@@ -1,7 +1,8 @@
 module Tokens where
 
+import Data.Text
 
-data Token
+data CToken
   -- keywords
   = TokInt        -- int keyword
   | TokVoid       -- void keyword 
