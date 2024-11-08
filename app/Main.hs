@@ -8,7 +8,7 @@ import Tokens
 import Parse (parse)  -- Import the parse function
 import Ast
 
-import Control.Exception (catch, IOException)
+import Control.Exception (bracket, catch, IOException)
 import System.FilePath (isExtensionOf, replaceExtension, takeDirectory, takeFileName, replaceExtension, (</>))
 import System.IO (hPutStrLn, stderr, stdout, appendFile)
 import Options.Applicative
@@ -89,7 +89,7 @@ preprocess app@AppOptions{..} = do
   let processConfig = proc "gcc" ["-E", "-P", absFile, "-o", output]
   hPutStrLn stderr $ "outputFileName: " ++ outputFileName
   hPutStrLn stderr $ "output: " ++ output
-  (exitCode, stdoutBS, stderrBS) <- readProcess processConfig
+  (exitCode, _, _) <- readProcess processConfig
   -- Check if gcc succeeded
   if exitCode == ExitSuccess
     then return output
@@ -124,48 +124,49 @@ processStage AppOptions{..} preprocessedFile = do
   hPutStrLn stderr $ "Processing stage: " ++ show stage
   hPutStrLn stderr $ "Preprocessed file: " ++ preprocessedFile
   input <- TIO.readFile preprocessedFile  -- Read the file once
-  case stage of
-    Lex -> do
-      hPutStrLn stderr "Running lexer..."
-      input <- TIO.readFile preprocessedFile  
-      hPutStrLn stderr $ "Read input: " ++ show input
-      
-      case runParser lexer preprocessedFile input of
-        Left err -> do
-          hPutStrLn stderr $ "Lexer error: " ++ errorBundlePretty err
-          exitFailure
-        Right tokens -> do
-          hPutStrLn stderr $ "Lexer succeeded, tokens: " ++ show tokens
-    Parse -> do
-      hPutStrLn stderr "Running parser..."
-      case runParser lexer preprocessedFile input of
-        Left err -> do
-          hPutStrLn stderr $ "Lexer error: " ++ errorBundlePretty err
-          exitFailure
-        Right tokens -> 
-          case parse tokens of
-            Left err -> do
-              hPutStrLn stderr $ "Parser error: " ++ errorBundlePretty err
-              exitFailure
-            Right ast -> do
-              hPutStrLn stderr $ "Parser succeeded, AST: " ++ show ast
-              
-    Codegen -> do
-      tokens <- runLexStage preprocessedFile
-      -- TODO: Run parser and codegen
-      return ()
-    Assembly -> do
-      tokens <- runLexStage preprocessedFile
-      -- TODO: Complete steps
-      return ()
-    Executable -> do
-      tokens <- runLexStage preprocessedFile
-      -- TODO: Complete steps
-      return ()
-  -- Clean up in all cases
-  removeFile preprocessedFile `catch` \(e :: IOException) -> do
-    hPutStrLn stderr $ "Warning: Could not remove temporary file: " ++ show e
-    return ()
+
+  bracket 
+    (return ())  -- No special setup needed
+    (\_ -> removeFile preprocessedFile `catch` \(e :: IOException) -> do
+            hPutStrLn stderr $ "Warning: Could not remove temporary file: " ++ show e)
+    (\_ -> case stage of
+      Lex -> do
+        hPutStrLn stderr "Running lexer..."
+        input <- TIO.readFile preprocessedFile  
+        hPutStrLn stderr $ "Read input: " ++ show input
+        case runParser lexer preprocessedFile input of
+          Left err -> do
+            hPutStrLn stderr $ "Lexer error: " ++ errorBundlePretty err
+            exitFailure
+          Right tokens -> do
+            hPutStrLn stderr $ "Lexer succeeded, tokens: " ++ show tokens
+      Parse -> do
+        hPutStrLn stderr "Running parser..."
+        case runParser lexer preprocessedFile input of
+          Left err -> do
+            hPutStrLn stderr $ "Lexer error: " ++ errorBundlePretty err
+            exitFailure
+          Right tokens -> 
+            case parse tokens of
+              Left err -> do
+                hPutStrLn stderr $ "Parser error: " ++ errorBundlePretty err
+                exitFailure
+              Right ast -> do
+                hPutStrLn stderr $ "Parser succeeded, AST: " ++ show ast      
+      Codegen -> do
+        tokens <- runLexStage preprocessedFile
+        -- TODO: Run parser and codegen
+        return ()
+      Assembly -> do
+        tokens <- runLexStage preprocessedFile
+        -- TODO: Complete steps
+        return ()
+      Executable -> do
+        tokens <- runLexStage preprocessedFile
+        -- TODO: Complete steps
+        return ()
+    )
+    --return ()
 
 
 main :: IO ()
