@@ -5,8 +5,10 @@ module Main where
 import Settings
 import Lexer (lexer)
 import Tokens
-import Parse (parse)  -- Import the parse function
+import Parse (parse)
 import Ast
+import Codegen
+import Emit
 
 import Control.Exception (bracket, catch, IOException)
 import System.FilePath (isExtensionOf, replaceExtension, takeDirectory, takeFileName, replaceExtension, (</>))
@@ -154,13 +156,44 @@ processStage AppOptions{..} preprocessedFile = do
               Right ast -> do
                 hPutStrLn stderr $ "Parser succeeded, AST: " ++ show ast      
       Codegen -> do
-        tokens <- runLexStage preprocessedFile
-        -- TODO: Run parser and codegen
-        return ()
+        hPutStrLn stderr "Running codegen..."
+        input <- TIO.readFile preprocessedFile
+        case runParser lexer preprocessedFile input of
+          Left err -> do
+            hPutStrLn stderr $ "Lexer error: " ++ errorBundlePretty err
+            exitFailure
+          Right tokens -> 
+            case parse tokens of
+              Left err -> do
+                hPutStrLn stderr $ "Parser error: " ++ errorBundlePretty err
+                exitFailure
+              Right ast ->
+                case gen ast of
+                  Left err -> do
+                    hPutStrLn stderr $ "Codegen error: " ++ T.unpack err
+                    exitFailure
+                  Right asmAst -> do
+                    hPutStrLn stderr $ "Codegen succeeded: " ++ show asmAst
       Assembly -> do
-        tokens <- runLexStage preprocessedFile
-        -- TODO: Complete steps
-        return ()
+        hPutStrLn stderr "Running Assembly generation..."
+        input <- TIO.readFile preprocessedFile
+        case runParser lexer preprocessedFile input of
+          Left err -> do
+            hPutStrLn stderr $ "Lexer error: " ++ errorBundlePretty err
+            exitFailure
+          Right tokens -> 
+            case parse tokens of
+              Left err -> do
+                hPutStrLn stderr $ "Parser error: " ++ errorBundlePretty err
+                exitFailure
+              Right ast ->
+                case gen ast of
+                  Left err -> do
+                    hPutStrLn stderr $ "Codegen error: " ++ T.unpack err
+                    exitFailure
+                  Right asmAst -> do
+                    hPutStrLn stderr $ "Codegen succeeded: " ++ show asmAst
+                    -- TODO: ADD WRITING ASSEMBLY TO FILE
       Executable -> do
         tokens <- runLexStage preprocessedFile
         -- TODO: Complete steps

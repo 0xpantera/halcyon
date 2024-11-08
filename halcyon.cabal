@@ -23,6 +23,9 @@ library
         , Lexer
         , Ast
         , Parse
+        , Assembly
+        , Codegen
+        , Emit
     -- other-modules:
     -- other-extensions:
     build-depends:    base ^>=4.20.0.0
