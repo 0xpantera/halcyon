@@ -9,17 +9,19 @@ import Parse (parse)
 import Ast
 import Codegen
 import Emit
+import qualified Assembly as Asm
+
 
 import Control.Exception (bracket, catch, IOException)
-import System.FilePath (isExtensionOf, replaceExtension, takeDirectory, takeFileName, replaceExtension, (</>))
-import System.IO (hPutStrLn, stderr, stdout, appendFile)
+import System.FilePath (isExtensionOf, replaceExtension, takeDirectory, takeFileName, replaceExtension, (</>), dropExtension)
+import System.IO (hPutStrLn, stderr, stdout)
 import Options.Applicative
 import System.Process.Typed
 import System.Directory (getCurrentDirectory, removeFile, makeAbsolute)
 import System.Environment (getArgs)
 import qualified Data.Text.IO as TIO
 import qualified Data.Text as T
-import Text.Megaparsec (runParser, errorBundlePretty)
+import Text.Megaparsec 
 import Control.Monad (when, void)
 import System.Exit (exitFailure)
 
@@ -35,13 +37,6 @@ stageParser =
   <|> flag' Codegen (long "codegen" <> help "Run through code generation")
   <|> flag' Assembly (long "S"      <> help "Stop before assembling")
   <|> pure Executable  -- Default value if no flag is provided
-
-
--- Handle source file as positional argument
-sourceFileParser :: Parser FilePath
-sourceFileParser = argument str
-  (  metavar "FILE"
-  <> help "Input C file" )
 
 inputFileParser :: Parser FilePath
 inputFileParser =
@@ -64,143 +59,113 @@ validFile = eitherReader $ \arg ->
   then return arg
   else Left "Invalid file extension. Expected a .c or .h file."
 
-replaceExt :: AppOptions -> FilePath
-replaceExt AppOptions{..} = replaceExtension file ".i"
-
--- "gcc" [ "-E"; "-P"; src; "-o"; output ]
-preprocess' :: AppOptions -> IO (ProcessConfig () () ())
-preprocess' app@AppOptions{..} = do
-  output <- pure $ replaceExt app
-  cwd <- getCurrentDirectory
-  pure $ setWorkingDir cwd $ proc "gcc" [ "-E", "-P", file, "-o", output ]
-
 preprocess :: AppOptions -> IO FilePath
-preprocess app@AppOptions{..} = do
-  -- Convert the source file path to an absolute path
+preprocess AppOptions{..} = do
   absFile <- makeAbsolute file
   hPutStrLn stderr $ "absFile: " ++ absFile
-  -- Get the directory of the source file
-  let fileDir = takeDirectory absFile
-      -- Get just the file name
-      fileName = takeFileName absFile
-      -- Create the output file name with the .i extension
-      outputFileName = replaceExtension fileName ".i"
-      -- Construct the full output file path in the source file's directory
-      output = fileDir </> outputFileName
-  -- Prepare the process configuration without changing the working directory
-  let processConfig = proc "gcc" ["-E", "-P", absFile, "-o", output]
+  let 
+    fileDir = takeDirectory absFile
+    fileName = takeFileName absFile
+    outputFileName = replaceExtension fileName ".i"
+    output = fileDir </> outputFileName
+    processConfig = proc "gcc" ["-E", "-P", absFile, "-o", output]
   hPutStrLn stderr $ "outputFileName: " ++ outputFileName
   hPutStrLn stderr $ "output: " ++ output
   (exitCode, _, _) <- readProcess processConfig
-  -- Check if gcc succeeded
   if exitCode == ExitSuccess
     then return output
     else do
-      -- Print gcc's error messages
-      --hPutStrLn stderr stderrBS
-      -- Handle the error as appropriate
       hPutStrLn stderr "gcc failed to preprocess the file."
       exitFailure
 
--- | Run the lexer on the preprocessed file
-runLexer :: FilePath -> IO [CToken]
-runLexer preprocessedFile = do
-  input <- TIO.readFile preprocessedFile
-  case runParser lexer preprocessedFile input of
-    Left err -> do
-      putStrLn $ errorBundlePretty err
+runLexStage :: T.Text -> Either T.Text [CToken]
+runLexStage input =
+  case runParser lexer "placeholder" input of
+    Left err -> Left $ T.pack (errorBundlePretty err)
+    Right ctokens -> Right ctokens
+
+runParseStage :: [CToken] -> Either T.Text Program
+runParseStage ctokens =
+  case Parse.parse ctokens of
+    Left err -> Left $ T.pack (errorBundlePretty err)
+    Right ast -> Right ast
+
+runCodegenStage :: Ast.Program -> Either T.Text Asm.Program
+runCodegenStage astProgram =
+  case gen astProgram of
+    Left err -> Left $ "Codegen failed: " <> err
+    Right asm -> Right asm
+
+runEmitStage :: Asm.Program -> Either T.Text T.Text
+runEmitStage asmProgram = Right $ emitProgram asmProgram
+
+processStage :: AppOptions -> T.Text -> Either T.Text StageResult
+processStage AppOptions{..} src = case stage of
+  Lex -> do
+    ctokens <- runLexStage src
+    pure $ StageResultTokens ctokens
+  Parse -> do
+    ctokens <- runLexStage src
+    ast <- runParseStage ctokens
+    pure $ StageResultAST ast
+  Codegen -> do
+    ctokens <- runLexStage src
+    ast <- runParseStage ctokens
+    asm <- runCodegenStage ast
+    pure $ StageResultAsm asm
+  Assembly -> do
+    ctokens <- runLexStage src
+    ast <- runParseStage ctokens
+    asm <- runCodegenStage ast
+    assembly <- runEmitStage asm
+    pure $ StageResultAssembly assembly
+  Executable -> do
+    ctokens <- runLexStage src
+    ast <- runParseStage ctokens
+    asm <- runCodegenStage ast
+    assembly <- runEmitStage asm
+    pure $ StageResultExecutable assembly
+
+handleStage :: AppOptions -> StageResult -> IO ()
+handleStage AppOptions{file} stageRes = case stageRes of
+  StageResultTokens ctokens -> do
+    hPutStrLn stderr "Lexer succeeded."
+    putStrLn $ "Tokens:\n" ++ show ctokens
+  StageResultAST ast -> do
+    hPutStrLn stderr "Parser succeeded."
+    putStrLn $ "AST:\n" ++ show ast
+  StageResultAsm asm -> do
+    hPutStrLn stderr "Codegen succeeded."
+    putStrLn $ "ASM:\n" ++ show asm
+  StageResultAssembly assembly -> do
+    hPutStrLn stderr "Assembly generation succeeded."
+    putStrLn $ "Assembly Code:\n" ++ T.unpack assembly
+  StageResultExecutable assembly -> do
+    hPutStrLn stderr "Compiling to executable ..."
+    inputFileAbs <- makeAbsolute file
+    let
+       -- Extract directory and base name from input file
+      inputDir = takeDirectory inputFileAbs
+      inputFileName = takeFileName inputFileAbs      -- e.g., "program.c"
+      baseName = dropExtension inputFileName         -- e.g., "program"
+      -- Define paths for assembly and executable files
+      asmFileName = baseName ++ ".s"                 -- e.g., "program.s"
+      asmFilePath = inputDir </> asmFileName         -- e.g., "/path/to/program.s"
+      outputFileName = baseName                      -- e.g., "program"
+      outputFilePath = inputDir </> outputFileName   -- e.g., "/path/to/program"
+    -- Write the assembly file
+    TIO.writeFile asmFilePath assembly
+    hPutStrLn stderr $ "Assembly file: " ++ asmFilePath
+    hPutStrLn stderr $ "Executable output: " ++ outputFilePath
+
+    let processConfig = proc "gcc" [asmFilePath, "-o", outputFilePath]
+    (exitCode, _, gccError) <- readProcess processConfig
+    if exitCode == ExitSuccess
+    then putStrLn "Succesfully compiled executable"
+    else do
+      hPutStrLn stderr ("gcc failed to compile the executable: " <> show gccError)
+      --removeFile asmFilePath `catch` \_ -> return ()
       exitFailure
-    Right tokens -> return tokens
-
-runLexStage :: FilePath -> IO [CToken]
-runLexStage preprocessedFile = do
-  input <- TIO.readFile preprocessedFile
-  case runParser lexer preprocessedFile input of
-    Left err -> do
-      putStrLn $ errorBundlePretty err
-      exitFailure
-    Right tokens -> return tokens
-
-processStage :: AppOptions -> FilePath -> IO ()
-processStage AppOptions{..} preprocessedFile = do
-  hPutStrLn stderr $ "Processing stage: " ++ show stage
-  hPutStrLn stderr $ "Preprocessed file: " ++ preprocessedFile
-  input <- TIO.readFile preprocessedFile  -- Read the file once
-
-  bracket 
-    (return ())  -- No special setup needed
-    (\_ -> removeFile preprocessedFile `catch` \(e :: IOException) -> do
-            hPutStrLn stderr $ "Warning: Could not remove temporary file: " ++ show e)
-    (\_ -> case stage of
-      Lex -> do
-        hPutStrLn stderr "Running lexer..."
-        input <- TIO.readFile preprocessedFile  
-        hPutStrLn stderr $ "Read input: " ++ show input
-        case runParser lexer preprocessedFile input of
-          Left err -> do
-            hPutStrLn stderr $ "Lexer error: " ++ errorBundlePretty err
-            exitFailure
-          Right tokens -> do
-            hPutStrLn stderr $ "Lexer succeeded, tokens: " ++ show tokens
-      Parse -> do
-        hPutStrLn stderr "Running parser..."
-        case runParser lexer preprocessedFile input of
-          Left err -> do
-            hPutStrLn stderr $ "Lexer error: " ++ errorBundlePretty err
-            exitFailure
-          Right tokens -> 
-            case parse tokens of
-              Left err -> do
-                hPutStrLn stderr $ "Parser error: " ++ errorBundlePretty err
-                exitFailure
-              Right ast -> do
-                hPutStrLn stderr $ "Parser succeeded, AST: " ++ show ast      
-      Codegen -> do
-        hPutStrLn stderr "Running codegen..."
-        input <- TIO.readFile preprocessedFile
-        case runParser lexer preprocessedFile input of
-          Left err -> do
-            hPutStrLn stderr $ "Lexer error: " ++ errorBundlePretty err
-            exitFailure
-          Right tokens -> 
-            case parse tokens of
-              Left err -> do
-                hPutStrLn stderr $ "Parser error: " ++ errorBundlePretty err
-                exitFailure
-              Right ast ->
-                case gen ast of
-                  Left err -> do
-                    hPutStrLn stderr $ "Codegen error: " ++ T.unpack err
-                    exitFailure
-                  Right asmAst -> do
-                    hPutStrLn stderr $ "Codegen succeeded: " ++ show asmAst
-      Assembly -> do
-        hPutStrLn stderr "Running Assembly generation..."
-        input <- TIO.readFile preprocessedFile
-        case runParser lexer preprocessedFile input of
-          Left err -> do
-            hPutStrLn stderr $ "Lexer error: " ++ errorBundlePretty err
-            exitFailure
-          Right tokens -> 
-            case parse tokens of
-              Left err -> do
-                hPutStrLn stderr $ "Parser error: " ++ errorBundlePretty err
-                exitFailure
-              Right ast ->
-                case gen ast of
-                  Left err -> do
-                    hPutStrLn stderr $ "Codegen error: " ++ T.unpack err
-                    exitFailure
-                  Right asmAst -> do
-                    hPutStrLn stderr $ "Codegen succeeded: " ++ show asmAst
-                    -- TODO: ADD WRITING ASSEMBLY TO FILE
-      Executable -> do
-        tokens <- runLexStage preprocessedFile
-        -- TODO: Complete steps
-        return ()
-    )
-    --return ()
-
 
 main :: IO ()
 main = do
@@ -213,7 +178,12 @@ main = do
   hPutStrLn stderr optionsMsg
 
   preprocessedFile <- preprocess opts
-  processStage opts preprocessedFile
+  srcResult <- TIO.readFile preprocessedFile
+  case processStage opts srcResult of
+    Left err -> do
+      hPutStrLn stderr $ "Error: " <> T.unpack err
+      exitFailure
+    Right result -> handleStage opts result
   where
     opt = info (helper <*> appOptionsParser) $
       progDesc "A compiler for a subset of C. Written in Haskell."

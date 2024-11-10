@@ -25,7 +25,7 @@ showOperand (Asm.Imm i) = "$" <> T.pack (show i)
 
 emitInstruction :: Asm.Instruction -> Text
 emitInstruction (Asm.Mov src dest) =
-  "\tmovl " <> showOperand src <> showOperand dest <> "\n"
+  "\tmovl " <> showOperand src <> ", " <> showOperand dest <> "\n"
 emitInstruction Asm.Ret =
   "\tret\n"
 
