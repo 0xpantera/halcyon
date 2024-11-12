@@ -2,7 +2,6 @@
 module Lexer where
 
 import Data.Functor (($>))
-import Control.Monad (void)
 import Data.Text (Text)
 import Data.Void
 import Text.Megaparsec
@@ -14,13 +13,6 @@ import Tokens
 
 -- Parser type
 type Parser = Parsec Void Text
-
--- Space consumer - eats up whitespace but not newlines
-sc :: Parser ()
-sc = L.space
-  (void $ some (char ' ' <|> char '\t'))
-  (L.skipLineComment "//")
-  (L.skipBlockComment "/*" "*/")
 
 -- Space consumer that handles newlines (used between tokens)
 scn :: Parser ()
@@ -38,7 +30,7 @@ symbol = L.symbol scn
 -- Individual token parsers
 pKeyword :: Text -> Parser CToken
 pKeyword kw = lexeme $ try $ do
-  string kw
+  _ <- string kw
   notFollowedBy alphaNumChar
   return $ case kw of
     "int"    -> TokInt
@@ -53,16 +45,12 @@ pIdentifier = lexeme $ try $ do
   let ident = T.pack (first:rest)
   return $ TokIdent ident
 
-pNumber' :: Parser CToken
-pNumber' = lexeme $ TokNumber . read <$> some digitChar
-
 pNumber :: Parser CToken
 pNumber = lexeme $ try $ do
   digits <- some digitChar
-  -- Look ahead to see if there are any letters following
   followedByLetter <- lookAhead (optional letterChar)
   case followedByLetter of
-    Just _ -> fail $ "Invalid token: number followed by letter: " ++ digits
+    Just _ -> fail $ "Invalid token: number followed by letter: " <> digits
     Nothing -> return $ TokNumber (read digits)
 
 pSymbol :: Text -> CToken -> Parser CToken
