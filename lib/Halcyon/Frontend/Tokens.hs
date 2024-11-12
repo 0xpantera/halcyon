@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RecordWildCards #-}
-module Tokens where
+module Halcyon.Frontend.Tokens where
 
 import qualified Data.Text as T
 import Data.Proxy

@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-module Emit where
+module Halcyon.Backend.Emit where
 
-import qualified Assembly as Asm
-import Data.Text
+import qualified Halcyon.Core.Assembly as Asm
+import Data.Text ( Text )
 import qualified Data.Text as T
 
 showOperand :: Asm.Operand -> Text

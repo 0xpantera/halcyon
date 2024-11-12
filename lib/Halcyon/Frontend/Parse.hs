@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Parse 
+module Halcyon.Frontend.Parse 
   ( parseTokens
   , HalcyonParseError
   , ParseResult
@@ -9,12 +9,12 @@ import Control.Monad (void)
 import Data.Text (Text)
 import qualified Data.Set as Set
 import Data.List.NonEmpty (NonEmpty(..))
-import qualified Data.List.NonEmpty as NE
 import Text.Megaparsec
-import Control.Monad.Combinators.Expr
+import Control.Monad.Combinators.Expr ( Operator )
 
-import Tokens
-import Ast
+import Halcyon.Frontend.Tokens ( CToken(..), CTokenParseError ) 
+import Halcyon.Core.Ast
+    ( Program(..), Expr(..), FunctionDef(Function), Statement(..) )
 
 -- Type aliases to make signatures cleaner
 type Parser = Parsec CTokenParseError [CToken]

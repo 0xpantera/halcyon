@@ -1,6 +1,6 @@
-module Assembly where
+module Halcyon.Core.Assembly where
 
-import Data.Text
+import Data.Text ( Text )
 
 -- AST ASDL
 -- program = Program(function_definition)

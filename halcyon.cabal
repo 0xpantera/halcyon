@@ -19,17 +19,18 @@ common warnings
 library
     import:           warnings
     exposed-modules:
-        , Assembly
-        , Ast
-        , Cli
-        , Codegen
-        , Emit
-        , Lexer
-        , Parse
-        , Pipeline
-        , Settings
-        , Tokens
-    -- other-modules:
+        Halcyon
+    other-modules:
+          Halcyon.Core.Settings
+        , Halcyon.Core.Ast
+        , Halcyon.Core.Assembly
+        , Halcyon.Frontend.Lexer
+        , Halcyon.Frontend.Parse
+        , Halcyon.Frontend.Tokens
+        , Halcyon.Backend.Codegen
+        , Halcyon.Backend.Emit
+        , Halcyon.Driver.Cli
+        , Halcyon.Driver.Pipeline
     -- other-extensions:
     build-depends:    base ^>=4.20.0.0
         , bytestring

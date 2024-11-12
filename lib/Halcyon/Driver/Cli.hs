@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Cli
+module Halcyon.Driver.Cli
   ( AppOptions(..)
   , Stage(..)
   , parseOptions
@@ -7,7 +7,7 @@ module Cli
 
 import Options.Applicative
 import System.FilePath (isExtensionOf)
-import Settings ( Stage(..) )
+import Halcyon.Core.Settings ( Stage(..) )
 
 data AppOptions = AppOptions 
   { file  :: FilePath

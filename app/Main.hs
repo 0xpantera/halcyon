@@ -1,7 +1,6 @@
 module Main where
 
-import Cli (parseOptions)
-import Pipeline (processFile)
+import Halcyon (parseOptions, processFile)
 import System.Environment (getArgs)
 import System.IO (hPutStrLn, stderr, stdout)
 

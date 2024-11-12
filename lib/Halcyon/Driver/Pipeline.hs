@@ -2,21 +2,21 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-module Pipeline
+module Halcyon.Driver.Pipeline
   ( StageResult(..)
   , processFile
   , handleStageResult
   ) where
 
-import Cli (AppOptions(..), Stage(..))
-import qualified Lexer
-import qualified Parse
-import qualified Codegen
-import qualified Emit
-import qualified Assembly as Asm
-import qualified Ast
-import Settings ( StageResult(..) )
-import qualified Tokens
+import Halcyon.Driver.Cli (AppOptions(..), Stage(..))
+import qualified Halcyon.Frontend.Lexer as Lexer
+import qualified Halcyon.Frontend.Parse as Parse
+import qualified Halcyon.Backend.Codegen as Codegen
+import qualified Halcyon.Backend.Emit as Emit
+import qualified Halcyon.Core.Assembly as Asm
+import qualified Halcyon.Core.Ast as Ast
+import Halcyon.Core.Settings ( StageResult(..) )
+import qualified Halcyon.Frontend.Tokens as Tokens
 
 import Control.Monad (when)
 import System.Exit (exitFailure)

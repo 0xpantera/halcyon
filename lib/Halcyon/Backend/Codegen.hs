@@ -1,10 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
-module Codegen where
+module Halcyon.Backend.Codegen where
 
-import qualified Assembly as Asm
-import qualified Ast
+import qualified Halcyon.Core.Assembly as Asm
+import qualified Halcyon.Core.Ast as Ast
 
-import Data.Text
+import Data.Text ( Text )
 
 convertExp :: Ast.Expr -> Either Text Asm.Operand
 convertExp (Ast.Constant i) = Right $ Asm.Imm i

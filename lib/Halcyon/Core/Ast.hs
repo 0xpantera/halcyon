@@ -1,6 +1,6 @@
-module Ast where
+module Halcyon.Core.Ast where
 
-import Data.Text
+import Data.Text ( Text )
 
 data Program = Program FunctionDef
   deriving Show
