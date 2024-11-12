@@ -24,6 +24,7 @@ library
           Halcyon.Core.Settings
         , Halcyon.Core.Ast
         , Halcyon.Core.Assembly
+        , Halcyon.Core.Monad
         , Halcyon.Frontend.Lexer
         , Halcyon.Frontend.Parse
         , Halcyon.Frontend.Tokens
@@ -38,9 +39,11 @@ library
         , directory
         , filepath
         , megaparsec
+        , mtl
         , optparse-applicative
         , parser-combinators
         , text
+        , transformers
         , typed-process
     hs-source-dirs:   lib
     default-language: GHC2024

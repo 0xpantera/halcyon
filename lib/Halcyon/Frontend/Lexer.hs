@@ -12,23 +12,23 @@ import qualified Data.Text as T
 import Halcyon.Frontend.Tokens
 
 -- Parser type
-type Parser = Parsec Void Text
+type Lexer = Parsec CLexError Text
 
 -- Space consumer that handles newlines (used between tokens)
-scn :: Parser ()
+scn :: Lexer ()
 scn = L.space
   space1  -- handles spaces, tabs, and newlines
   (L.skipLineComment "//")
   (L.skipBlockComment "/*" "*/")
 
-lexeme :: Parser a -> Parser a
+lexeme :: Lexer a -> Lexer a
 lexeme = L.lexeme scn
 
-symbol :: Text -> Parser Text
+symbol :: Text -> Lexer Text
 symbol = L.symbol scn
 
 -- Individual token parsers
-pKeyword :: Text -> Parser CToken
+pKeyword :: Text -> Lexer CToken
 pKeyword kw = lexeme $ try $ do
   _ <- string kw
   notFollowedBy alphaNumChar
@@ -38,14 +38,14 @@ pKeyword kw = lexeme $ try $ do
     "return" -> TokReturn
     _        -> error "Invalid keyword"
 
-pIdentifier :: Parser CToken
+pIdentifier :: Lexer CToken
 pIdentifier = lexeme $ try $ do
   first <- letterChar <|> char '_'
   rest <- many (alphaNumChar <|> char '_')
   let ident = T.pack (first:rest)
   return $ TokIdent ident
 
-pNumber :: Parser CToken
+pNumber :: Lexer CToken
 pNumber = lexeme $ try $ do
   digits <- some digitChar
   followedByLetter <- lookAhead (optional letterChar)
@@ -53,11 +53,11 @@ pNumber = lexeme $ try $ do
     Just _ -> fail $ "Invalid token: number followed by letter: " <> digits
     Nothing -> return $ TokNumber (read digits)
 
-pSymbol :: Text -> CToken -> Parser CToken
+pSymbol :: Text -> CToken -> Lexer CToken
 pSymbol sym tok = lexeme $ try $ string sym $> tok
 
 -- Parser for any single token
-pToken :: Parser CToken
+pToken :: Lexer CToken
 pToken = choice
   [ pKeyword "int"
   , pKeyword "void"
@@ -72,5 +72,5 @@ pToken = choice
   ]
 
 -- Parse all tokens in a file
-lexer :: Parser [CToken]
+lexer :: Lexer [CToken]
 lexer = between scn eof (many pToken)

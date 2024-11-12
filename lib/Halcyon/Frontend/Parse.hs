@@ -12,13 +12,13 @@ import Data.List.NonEmpty (NonEmpty(..))
 import Text.Megaparsec
 import Control.Monad.Combinators.Expr ( Operator )
 
-import Halcyon.Frontend.Tokens ( CToken(..), CTokenParseError ) 
+import Halcyon.Frontend.Tokens ( CToken(..), CParseError ) 
 import Halcyon.Core.Ast
     ( Program(..), Expr(..), FunctionDef(Function), Statement(..) )
 
 -- Type aliases to make signatures cleaner
-type Parser = Parsec CTokenParseError [CToken]
-type HalcyonParseError = ParseErrorBundle [CToken] CTokenParseError
+type Parser = Parsec CParseError [CToken]
+type HalcyonParseError = ParseErrorBundle [CToken] CParseError 
 type ParseResult = Either HalcyonParseError Program
 
 -- Main entry point
