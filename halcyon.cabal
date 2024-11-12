@@ -18,14 +18,17 @@ common warnings
 
 library
     import:           warnings
-    exposed-modules:  Settings
-        , Tokens
-        , Lexer
-        , Ast
-        , Parse
+    exposed-modules:
         , Assembly
+        , Ast
+        , Cli
         , Codegen
         , Emit
+        , Lexer
+        , Parse
+        , Pipeline
+        , Settings
+        , Tokens
     -- other-modules:
     -- other-extensions:
     build-depends:    base ^>=4.20.0.0
@@ -34,7 +37,10 @@ library
         , directory
         , filepath
         , megaparsec
+        , optparse-applicative
+        , parser-combinators
         , text
+        , typed-process
     hs-source-dirs:   lib
     default-language: GHC2024
 
@@ -46,12 +52,6 @@ executable halcyon
     build-depends:
           base ^>=4.20.0.0
         , halcyon
-        , directory
-        , filepath
-        , megaparsec
-        , optparse-applicative
-        , text
-        , typed-process
     hs-source-dirs:   app
     default-language: GHC2024
 
