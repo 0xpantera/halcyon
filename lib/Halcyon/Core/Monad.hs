@@ -37,7 +37,7 @@ import qualified Halcyon.Frontend.Tokens as Tokens
 -- | Represents different types of errors that can occur during compilation.
 -- This type wraps more specific error types from different compilation stages
 -- into a single type that can be handled uniformly throughout the compiler.
-data CompilerError 
+data CompilerError
   = LexerError (M.ParseErrorBundle Text Tokens.CLexError)
     -- ^ Wraps lexer-specific errors that occur during tokenization
   | ParserError (M.ParseErrorBundle [Tokens.CToken] Tokens.CParseError) 

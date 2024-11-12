@@ -3,7 +3,8 @@ module Halcyon.Frontend.Lexer where
 
 import Data.Functor (($>))
 import Data.Text (Text)
-import Data.Void ( Void )
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -17,7 +18,7 @@ type Lexer = Parsec CLexError Text
 -- Space consumer that handles newlines (used between tokens)
 scn :: Lexer ()
 scn = L.space
-  space1  -- handles spaces, tabs, and newlines
+  space1  
   (L.skipLineComment "//")
   (L.skipBlockComment "/*" "*/")
 
@@ -31,7 +32,8 @@ symbol = L.symbol scn
 pKeyword :: Text -> Lexer CToken
 pKeyword kw = lexeme $ try $ do
   _ <- string kw
-  notFollowedBy alphaNumChar
+  notFollowedBy alphaNumChar <?> 
+    "end of keyword '" <> T.unpack kw <> "'"
   return $ case kw of
     "int"    -> TokInt
     "void"   -> TokVoid
@@ -43,18 +45,28 @@ pIdentifier = lexeme $ try $ do
   first <- letterChar <|> char '_'
   rest <- many (alphaNumChar <|> char '_')
   let ident = T.pack (first:rest)
-  return $ TokIdent ident
+  -- Check for valid identifier
+  if T.length ident > 31
+    then customFailure $ LexicalError $ InvalidSequence ident 
+      "identifier must be 31 characters or less"
+    else return $ TokIdent ident
 
 pNumber :: Lexer CToken
 pNumber = lexeme $ try $ do
   digits <- some digitChar
-  followedByLetter <- lookAhead (optional letterChar)
+  followedByLetter <- lookAhead (optional alphaNumChar)
   case followedByLetter of
-    Just _ -> fail $ "Invalid token: number followed by letter: " <> digits
-    Nothing -> return $ TokNumber (read digits)
+    Just c -> customFailure $ MalformedNumber $ 
+      "Invalid character '" <> T.singleton c <> "' in number"
+    Nothing -> 
+      let n = read digits
+      in if n > (2^31 - 1) 
+         then customFailure $ MalformedNumber "Integer too large"
+         else return $ TokNumber n
 
 pSymbol :: Text -> CToken -> Lexer CToken
-pSymbol sym tok = lexeme $ try $ string sym $> tok
+pSymbol sym tok = lexeme $ try $ 
+  ((string sym $> tok) <?> T.unpack sym)
 
 -- Parser for any single token
 pToken :: Lexer CToken
@@ -69,8 +81,8 @@ pToken = choice
   , pSymbol ";" TokSemicolon
   , pIdentifier
   , pNumber
-  ]
+  ] <?> "token"
 
 -- Parse all tokens in a file
 lexer :: Lexer [CToken]
-lexer = between scn eof (many pToken)
+lexer = between scn eof (many pToken) <?> "C program"

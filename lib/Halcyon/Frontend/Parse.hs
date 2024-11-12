@@ -10,15 +10,14 @@ import Data.Text (Text)
 import qualified Data.Set as Set
 import Data.List.NonEmpty (NonEmpty(..))
 import Text.Megaparsec
-import Control.Monad.Combinators.Expr ( Operator )
 
-import Halcyon.Frontend.Tokens ( CToken(..), CParseError ) 
+import Halcyon.Frontend.Tokens
 import Halcyon.Core.Ast
     ( Program(..), Expr(..), FunctionDef(Function), Statement(..) )
 
 -- Type aliases to make signatures cleaner
 type Parser = Parsec CParseError [CToken]
-type HalcyonParseError = ParseErrorBundle [CToken] CParseError 
+type HalcyonParseError = ParseErrorBundle [CToken] CParseError
 type ParseResult = Either HalcyonParseError Program
 
 -- Main entry point
@@ -27,31 +26,33 @@ parseTokens ctokens = runParser (parseProgram <* eof) "" ctokens
 
 -- Program level parser
 parseProgram :: Parser Program
-parseProgram = Program <$> parseFunctionDef
+parseProgram = Program <$> parseFunctionDef <?> "program"
 
 -- Function definition parsers
 parseFunctionDef :: Parser FunctionDef
-parseFunctionDef = 
-  Function <$> parseFunctionHeader <*> parseFunctionBody
+parseFunctionDef = do
+  name <- parseFunctionHeader
+  body <- parseFunctionBody
+  return $ Function name body
 
 parseFunctionHeader :: Parser Text
 parseFunctionHeader = do
   void $ matchToken TokInt
   name <- identifier
   void $ parseParams
-  pure name
+  return name <?> "function header"
 
 parseParams :: Parser ()
-parseParams = void $ between 
+parseParams = between 
   (matchToken TokLParen) 
   (matchToken TokRParen)
-  (matchToken TokVoid)
+  (void (matchToken TokVoid <?> "void")) <?> "function parameters"
 
 parseFunctionBody :: Parser Statement
 parseFunctionBody = between 
   (matchToken TokLBrace)
   (matchToken TokRBrace)
-  parseStatement
+  parseStatement <?> "function body"
 
 -- Statement parsers
 parseStatement :: Parser Statement
@@ -60,12 +61,13 @@ parseStatement = choice
   ] <?> "statement"
 
 parseReturn :: Parser Statement
-parseReturn = Return <$> 
-  (matchToken TokReturn *> parseExpr <* matchToken TokSemicolon)
-  <?> "return statement"
+parseReturn = do
+  void (matchToken TokReturn <?> "return keyword")
+  expr <- parseExpr
+  void (matchToken TokSemicolon <?> "semicolon")
+  return $ Return expr
 
 -- Expression parsers
--- Currently only handles constants, but structured for future expansion
 parseExpr :: Parser Expr
 parseExpr = parseTerm <?> "expression"
 
@@ -76,23 +78,23 @@ parseTerm = choice
 
 -- Token level parsers
 matchToken :: CToken -> Parser CToken
-matchToken expected = token test expectedSet
+matchToken expected = token test expectedSet <?> show expected
   where
-    test x = if x == expected then Just x else Nothing
+    test x = if x == expected 
+             then Just x 
+             else Nothing
     expectedSet = Set.singleton $ Tokens (expected :| [])
-    
+
 identifier :: Parser Text
-identifier = token test Set.empty <?> "identifier"
+identifier = token test expectedSet <?> "identifier"
   where
     test (TokIdent t) = Just t
     test _ = Nothing
+    expectedSet = Set.singleton $ Label ('i' :| "dentifier")
 
 number :: Parser Int
-number = token test Set.empty <?> "number"
+number = token test expectedSet <?> "number"
   where
     test (TokNumber n) = Just n
     test _ = Nothing
-
--- Prepared for future operator implementation
-operatorTable :: [[Operator Parser Expr]]
-operatorTable = []
+    expectedSet = Set.singleton $ Label ('n' :| "umber")
