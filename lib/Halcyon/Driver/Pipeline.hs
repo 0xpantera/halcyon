@@ -1,13 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE LambdaCase #-}
+
 module Halcyon.Driver.Pipeline
   ( StageResult(..)
   , processFile
   , handleStageResult
   ) where
 
+import Halcyon.Core.Monad
 import Halcyon.Driver.Cli (AppOptions(..), Stage(..))
 import qualified Halcyon.Frontend.Lexer as Lexer
 import qualified Halcyon.Frontend.Parse as Parse
@@ -15,38 +16,38 @@ import qualified Halcyon.Backend.Codegen as Codegen
 import qualified Halcyon.Backend.Emit as Emit
 import qualified Halcyon.Core.Assembly as Asm
 import qualified Halcyon.Core.Ast as Ast
-import Halcyon.Core.Settings ( StageResult(..) )
+import Halcyon.Core.Settings (StageResult(..))
 import qualified Halcyon.Frontend.Tokens as Tokens
 
-import Control.Monad (when)
+import Control.Monad (unless)
+import Control.Monad.Except ()
+import Control.Monad.IO.Class ()
 import System.Exit (exitFailure)
 import System.FilePath
 import System.Directory (makeAbsolute)
 import System.Process.Typed
-import System.IO (hPutStrLn, stderr)
 import qualified Data.Text.IO as TIO
 import qualified Data.Text as T
-import Text.Megaparsec (errorBundlePretty, runParser)
+import Text.Megaparsec (runParser)
 
 
-preprocess :: AppOptions -> IO FilePath
+-- | Preprocess the source file using GCC
+preprocess :: MonadCompiler m => AppOptions -> m FilePath
 preprocess AppOptions{..} = do
-  absFile <- makeAbsolute file
-  let 
-    fileDir = takeDirectory absFile
-    fileName = takeFileName absFile
-    outputFileName = replaceExtension fileName ".i"
-    output = fileDir </> outputFileName
-    processConfig = proc "gcc" ["-E", "-P", absFile, "-o", output]
+  absFile <- liftIO $ makeAbsolute file
+  let fileDir = takeDirectory absFile
+      fileName = takeFileName absFile
+      outputFileName = replaceExtension fileName ".i"
+      output = fileDir </> outputFileName
+      processConfig = proc "gcc" ["-E", "-P", absFile, "-o", output]
   
-  (exitCode, _, _) <- readProcess processConfig
+  (exitCode, _, stderr) <- liftIO $ readProcess processConfig
   if exitCode == ExitSuccess
     then return output
-    else do
-      hPutStrLn stderr "gcc failed to preprocess the file."
-      exitFailure
+    else throwError $ SystemError $ "GCC preprocessing failed: " <> T.pack (show stderr)
 
-runCompilerStages :: AppOptions -> T.Text -> Either T.Text StageResult
+-- | Run compilation stages based on command line options
+runCompilerStages :: MonadCompiler m => AppOptions -> T.Text -> m StageResult
 runCompilerStages AppOptions{..} src = case stage of
   Lex -> StageResultTokens <$> runLexStage src
   Parse -> StageResultAST <$> 
@@ -58,68 +59,58 @@ runCompilerStages AppOptions{..} src = case stage of
   Executable -> StageResultExecutable <$>
     (runLexStage src >>= runParseStage >>= runCodegenStage >>= runEmitStage)
   where
-    runLexStage :: T.Text -> Either T.Text [Tokens.CToken]
-    runLexStage input = case runParser Lexer.lexer "" input of
-      Left err -> Left $ T.pack $ errorBundlePretty err
-      Right tokens -> Right tokens
-    
-    runParseStage :: [Tokens.CToken] -> Either T.Text Ast.Program
-    runParseStage tokens = case Parse.parseTokens tokens of
-      Left err -> Left $ T.pack $ errorBundlePretty err
-      Right ast -> Right ast
-    
-    runCodegenStage :: Ast.Program -> Either T.Text Asm.Program
-    runCodegenStage = Codegen.gen
-    
-    runEmitStage :: Asm.Program -> Either T.Text T.Text
-    runEmitStage = Right . Emit.emitProgram
+    runLexStage :: MonadCompiler m => T.Text -> m [Tokens.CToken]
+    runLexStage input = liftLexResult $ runParser Lexer.lexer "" input
+    runParseStage :: MonadCompiler m => [Tokens.CToken] -> m Ast.Program
+    runParseStage = liftParseResult . Parse.parseTokens
+    runCodegenStage :: MonadCompiler m => Ast.Program -> m Asm.Program
+    runCodegenStage = liftCompilerEither . Codegen.gen
+    runEmitStage :: MonadCompiler m => Asm.Program -> m T.Text
+    runEmitStage = return . Emit.emitProgram
 
-handleStageResult :: AppOptions -> StageResult -> IO ()
-handleStageResult opts@AppOptions{} result = case result of
-  StageResultTokens tokens -> do
-    hPutStrLn stderr "Lexer succeeded."
-    print tokens
-    
-  StageResultAST ast -> do
-    hPutStrLn stderr "Parser succeeded."
-    print ast
-    
-  StageResultAsm asm -> do
-    hPutStrLn stderr "Codegen succeeded."
-    print asm
-    
-  StageResultAssembly assembly -> do
-    hPutStrLn stderr "Assembly generation succeeded."
-    putStrLn $ T.unpack assembly
-    
+-- | Handle the result of compilation
+handleStageResult :: MonadCompiler m => AppOptions -> StageResult -> m ()
+handleStageResult opts@AppOptions{} = \case
+  StageResultTokens tokens -> 
+    liftIO $ print tokens
+  StageResultAST ast ->
+    liftIO $ print ast
+  StageResultAsm asm ->
+    liftIO $ print asm
+  StageResultAssembly assembly ->
+    liftIO $ TIO.putStrLn assembly
   StageResultExecutable assembly -> 
     compileToExecutable opts assembly
 
-compileToExecutable :: AppOptions -> T.Text -> IO ()
+-- | Compile assembly to an executable using GCC
+compileToExecutable :: MonadCompiler m => AppOptions -> T.Text -> m ()
 compileToExecutable AppOptions{..} assembly = do
-  inputFileAbs <- makeAbsolute file
-  let
-    inputDir = takeDirectory inputFileAbs
-    baseName = dropExtension $ takeFileName inputFileAbs
-    asmFilePath = inputDir </> (baseName ++ ".s")
-    outputFilePath = inputDir </> baseName
+  inputFileAbs <- liftIO $ makeAbsolute file
+  let inputDir = takeDirectory inputFileAbs
+      baseName = dropExtension $ takeFileName inputFileAbs
+      asmFilePath = inputDir </> (baseName ++ ".s")
+      outputFilePath = inputDir </> baseName
 
-  TIO.writeFile asmFilePath assembly
+  liftIO $ TIO.writeFile asmFilePath assembly
   
   let processConfig = proc "gcc" [asmFilePath, "-o", outputFilePath]
-  (exitCode, _, gccError) <- readProcess processConfig
-  if exitCode == ExitSuccess
-    then putStrLn "Successfully compiled executable"
-    else do
-      hPutStrLn stderr $ "gcc failed to compile: " ++ show gccError
-      exitFailure
+  (exitCode, _, stderr) <- liftIO $ readProcess processConfig
+  
+  unless (exitCode == ExitSuccess) $
+    throwError $ SystemError $ "GCC compilation failed: " <> T.pack (show stderr)
 
+-- | Main entry point for the compiler pipeline
 processFile :: AppOptions -> IO ()
 processFile opts = do
-  preprocessedFile <- preprocess opts
-  srcResult <- TIO.readFile preprocessedFile
-  case runCompilerStages opts srcResult of
+  result <- runCompiler $ do
+    preprocessedFile <- preprocess opts
+    srcResult <- liftIO $ TIO.readFile preprocessedFile
+    result <- runCompilerStages opts srcResult
+    handleStageResult opts result
+    
+  case result of
     Left err -> do
-      hPutStrLn stderr $ "Error: " <> T.unpack err
+      TIO.putStrLn $ "Error: " <> formatError err
       exitFailure
-    Right result -> handleStageResult opts result
+    Right _ -> 
+      pure ()
