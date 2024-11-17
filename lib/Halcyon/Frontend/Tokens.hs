@@ -20,16 +20,19 @@ import qualified Data.List.NonEmpty as NE
 
 -- | Tokens produced by lexical analysis
 data CToken
-  = TokInt        
-  | TokVoid      
-  | TokReturn    
+  = TokInt       
+  | TokVoid    
+  | TokReturn 
   | TokIdent Text
   | TokNumber Int
   | TokLParen    
   | TokRParen    
   | TokLBrace    
   | TokRBrace    
-  | TokSemicolon 
+  | TokSemicolon
+  | TokHyphen
+  | TokDoubleHyphen  
+  | TokTilde
   deriving (Eq, Show, Ord)
 
 -- | Common syntax errors that can occur in both lexing and parsing
