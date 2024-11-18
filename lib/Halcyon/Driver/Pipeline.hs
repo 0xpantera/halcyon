@@ -9,6 +9,8 @@ module Halcyon.Driver.Pipeline
   ) where
 
 import Halcyon.Core.Monad
+import qualified Halcyon.Core.Tacky as Tacky
+import Halcyon.Core.TackyGen
 import Halcyon.Driver.Cli (AppOptions(..), Stage(..))
 import qualified Halcyon.Frontend.Lexer as Lexer
 import qualified Halcyon.Frontend.Parse as Parse
@@ -52,6 +54,8 @@ runCompilerStages AppOptions{..} src = case stage of
   Lex -> StageResultTokens <$> runLexStage src
   Parse -> StageResultAST <$> 
     (runLexStage src >>= runParseStage)
+  Tacky -> StageResultTacky <$>
+    (runLexStage src >>= runParseStage >>= runTackyStage)
   Codegen -> StageResultAsm <$> 
     (runLexStage src >>= runParseStage >>= runCodegenStage)
   Assembly -> StageResultAssembly <$>
@@ -63,6 +67,8 @@ runCompilerStages AppOptions{..} src = case stage of
     runLexStage input = liftLexResult $ runParser Lexer.lexer "" input
     runParseStage :: MonadCompiler m => [Tokens.CToken] -> m Ast.Program
     runParseStage = liftParseResult . Parse.parseTokens
+    runTackyStage :: MonadCompiler m => Ast.Program -> m Tacky.Program
+    runTackyStage = genTacky
     runCodegenStage :: MonadCompiler m => Ast.Program -> m Asm.Program
     runCodegenStage = liftCompilerEither . Codegen.gen
     runEmitStage :: MonadCompiler m => Asm.Program -> m T.Text
@@ -75,6 +81,8 @@ handleStageResult opts@AppOptions{} = \case
     liftIO $ print tokens
   StageResultAST ast ->
     liftIO $ print ast
+  StageResultTacky tacky ->
+    liftIO $ print tacky
   StageResultAsm asm ->
     liftIO $ print asm
   StageResultAssembly assembly ->
