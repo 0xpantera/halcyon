@@ -6,14 +6,16 @@ module Halcyon.Frontend.Parse
   ) where
 
 import Control.Monad (void)
+import Control.Monad.Combinators.Expr
 import Data.Text (Text)
 import qualified Data.Set as Set
 import Data.List.NonEmpty (NonEmpty(..))
 import Text.Megaparsec
+import Text.Megaparsec.Debug (dbg)
 
 import Halcyon.Frontend.Tokens
 import Halcyon.Core.Ast
-    ( Program(..), Expr(..), FunctionDef(Function), Statement(..) )
+    ( Program(..), Expr(..), FunctionDef(Function), Statement(..), UnaryOp(..) )
 
 -- Type aliases to make signatures cleaner
 type Parser = Parsec CParseError [CToken]
@@ -69,12 +71,40 @@ parseReturn = do
 
 -- Expression parsers
 parseExpr :: Parser Expr
-parseExpr = parseTerm <?> "expression"
+parseExpr = dbg "expr" (choice
+  [ dbg "unary" parseUnary <?> "unary operator"
+  , dbg "term" parseTerm <?> "term"
+  ] <?> "expression")
 
 parseTerm :: Parser Expr
-parseTerm = choice
-  [ Constant <$> number
-  ] <?> "term"
+parseTerm = dbg "term" (choice
+  [ dbg "constant" (Constant <$> number)
+  , dbg "paren expr" (parens parseExpr)
+  ] <?> "term")
+
+parens :: Parser a -> Parser a
+parens = between
+  (matchToken TokLParen)
+  (matchToken TokRParen)
+
+parseUnary :: Parser Expr
+parseUnary = dbg "unary" $ do
+  op <- dbg "unaryOp" pUnaryOp
+  expr <- dbg "unaryExp" parseExpr
+  case op of
+    TokTilde -> 
+      pure $ Unary Complement expr
+    TokHyphen -> 
+      pure $ Unary Negate expr
+    TokDoubleHyphen -> 
+      customFailure $ UnexpectedToken TokDoubleHyphen "Not yet implemented"
+    badTok -> 
+      customFailure $ UnexpectedToken badTok "No."
+
+pUnaryOp :: Parser CToken
+pUnaryOp = (matchToken TokTilde <?> "bitwise complement operator")
+  <|> (matchToken TokHyphen <?> "negation operator")
+  <|> (matchToken TokDoubleHyphen <?> "decrement operator")
 
 -- Token level parsers
 matchToken :: CToken -> Parser CToken
