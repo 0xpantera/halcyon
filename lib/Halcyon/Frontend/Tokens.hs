@@ -110,6 +110,9 @@ instance ShowErrorComponent CToken where
     TokLBrace -> "left brace '{'"
     TokRBrace -> "right brace '}'"
     TokSemicolon -> "semicolon ';'"
+    TokTilde -> "tilde '~'"
+    TokHyphen -> "hyphen '-'"
+    TokDoubleHyphen -> "double hyphen '--'"
 
 -- For better error messages - shows a preview of tokens
 instance VisualStream [CToken] where
