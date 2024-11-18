@@ -25,6 +25,8 @@ library
         , Halcyon.Core.Ast
         , Halcyon.Core.Assembly
         , Halcyon.Core.Monad
+        , Halcyon.Core.Tacky
+        , Halcyon.Core.TackyGen
         , Halcyon.Frontend.Lexer
         , Halcyon.Frontend.Parse
         , Halcyon.Frontend.Tokens
