@@ -1,6 +1,8 @@
 {-#LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-module Halcyon.Core.TackyGen where
+module Halcyon.Core.TackyGen 
+( genTacky
+) where
 
 import Control.Monad.State
 import Data.Text (Text)
@@ -8,7 +10,7 @@ import qualified Data.Text as T
 
 import Halcyon.Core.Ast qualified as Ast  
 import Halcyon.Core.Tacky qualified as Tacky
-import Halcyon.Core.Monad (Compiler)
+import Halcyon.Core.Monad (MonadCompiler)
 
 newtype TackyGenT m a = TackyGenT 
   { runTackyGenT :: StateT Int m a }
@@ -60,5 +62,6 @@ emitTackyProgram (Ast.Program fnDef) = do
   tackyFunc <- emitTackyForFunc fnDef
   pure $ Tacky.Program tackyFunc
 
-genTacky :: Ast.Program -> Compiler Tacky.Program 
-genTacky program = evalStateT (runTackyGenT $ emitTackyProgram program) 0
+genTacky :: MonadCompiler m => Ast.Program -> m Tacky.Program 
+genTacky program = 
+  evalStateT (runTackyGenT $ emitTackyProgram program) 0
