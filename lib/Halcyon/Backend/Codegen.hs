@@ -2,22 +2,33 @@
 module Halcyon.Backend.Codegen where
 
 import qualified Halcyon.Core.Assembly as Asm
-import qualified Halcyon.Core.Ast as Ast
+import qualified Halcyon.Core.Tacky as Tacky
 
-import Data.Text ( Text )
+convertVal :: Tacky.TackyVal -> Asm.Operand
+convertVal (Tacky.Constant int)   = Asm.Imm int
+convertVal (Tacky.Var identifier) = Asm.Pseudo identifier
 
-convertExp :: Ast.Expr -> Either Text Asm.Operand
-convertExp (Ast.Constant i) = Right $ Asm.Imm i
+convertOp :: Tacky.UnaryOp -> Asm.UnaryOp
+convertOp Tacky.Complement = Asm.Not
+convertOp Tacky.Negate     = Asm.Neg
 
-convertStatement :: Ast.Statement -> Either Text [Asm.Instruction]
-convertStatement (Ast.Return e) = do
-  v <- convertExp e
-  pure [Asm.Mov v Asm.Register, Asm.Ret]
+convertInstruction :: Tacky.Instruction -> [Asm.Instruction]
+convertInstruction (Tacky.Return val) =
+  let 
+    asmVal = convertVal val
+    asmReg = Asm.Register Asm.Ax
+  in [Asm.Mov asmVal asmReg, Asm.Ret]
+convertInstruction (Tacky.Unary op src dest) =
+  let 
+    asmSrc  = convertVal src
+    asmDest = convertVal dest
+    asmOp   = convertOp op
+  in [Asm.Mov asmSrc asmDest, Asm.Unary asmOp asmDest]
 
-convertFunction :: Ast.FunctionDef -> Either Text Asm.FunctionDef
-convertFunction Ast.Function{..} = do
-  instructions <- convertStatement body
-  pure Asm.Function {name, instructions}
+convertFunction :: Tacky.FunctionDef -> Asm.FunctionDef
+convertFunction Tacky.Function{..} =
+  let instructions = concatMap convertInstruction body
+  in Asm.Function {name, instructions}
 
-gen :: Ast.Program -> Either Text Asm.Program
-gen (Ast.Program fnDef) = Asm.Program <$> convertFunction fnDef
+gen :: Tacky.Program -> Asm.Program
+gen (Tacky.Program fnDef) = Asm.Program $ convertFunction fnDef
