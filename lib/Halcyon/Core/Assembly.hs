@@ -2,23 +2,6 @@ module Halcyon.Core.Assembly where
 
 import Data.Text ( Text )
 
-{-
-program = Program(function_definition)
-function_definition = Function(identifier name, instruction* instructions)
-instruction 
-  = Mov(operand src, operand dst)
-  | Unary(unary_operator, operand)
-  | AllocateStack(int)
-  | Ret
-unary_operator = Neg | Not
-operand 
-  = Imm(int) 
-  | Reg(reg) 
-  | Pseudo(identifier) 
-  | Stack(int)
-reg = AX | R10
--}
-
 --TODO: use record syntax to name some of the product types
 -- e.i. Mov Operand Operand -> Mov {src: Operand, dest: Operand}
 data Program = Program FunctionDef
@@ -48,3 +31,20 @@ data Operand
 
 data Reg = Ax | R10
   deriving (Eq, Show)
+
+{-
+program = Program(function_definition)
+function_definition = Function(identifier name, instruction* instructions)
+instruction 
+  = Mov(operand src, operand dst)
+  | Unary(unary_operator, operand)
+  | AllocateStack(int)
+  | Ret
+unary_operator = Neg | Not
+operand 
+  = Imm(int) 
+  | Reg(reg) 
+  | Pseudo(identifier) 
+  | Stack(int)
+reg = AX | R10
+-}
