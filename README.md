@@ -4,11 +4,11 @@ Halcyon is a work-in-progress compiler for a large subset of C, written in Haske
 
 ## Current Status
 
-The compiler currently handles the simplest subset of C programs: functions that return integer constants. For example:
+The compiler currently handles C programs with unary operators and integer constants. For example:
 
 ```c
 int main(void) {
-    return 42;
+    return ~(-42);
 }
 ```
 
@@ -18,8 +18,9 @@ The compiler processes source code through the following stages:
 
 1. **Lexical Analysis**: Breaks source code into a sequence of tokens
 2. **Parsing**: Converts tokens into an Abstract Syntax Tree (AST)
-3. **Code Generation**: Transforms AST into x86_64 assembly
-4. **Code Emission**: Outputs the assembly code to an executable
+3. **TACKY Generation**: Transforms AST into TACKY intermediate representation
+4. **Code Generation**: Transforms AST into x86_64 assembly
+5. **Code Emission**: Outputs the assembly code to an executable
 
 ### Internal Representations
 
@@ -33,10 +34,24 @@ Programs are represented internally using a series of increasingly lower-level d
      , body :: Statement 
      }
    data Statement = Return Expr
-   data Expr = Constant Int
+   data Expr = Constant Int | Unary UnaryOp Expr
+   data UnaryOp = Complement | Negate
    ```
 
-2. **Assembly AST**:
+2. **TACKY IR**:
+  ```haskell
+  data Program = Program FunctionDef
+  data FunctionDef = Function 
+    { name :: Text
+    , body :: [Instruction]
+    }
+  data Instruction 
+    = Return TackyVal
+    | Unary UnaryOp TackyVal TackyVal
+  data TackyVal = Constant Int | Var Text
+  ```
+
+3. **Assembly AST**:
    ```haskell
    data Program = Program FunctionDef
    data FunctionDef = Function 
@@ -47,26 +62,42 @@ Programs are represented internally using a series of increasingly lower-level d
    data Operand = Imm Int | Register
    ```
 
+
 ## Project Structure
 
 ```
-lib/
-├── Halcyon/
-│   ├── Backend/           # Code generation and emission
-│   │   ├── Codegen.hs     # AST to Assembly conversion
-│   │   └── Emit.hs        # Assembly to text output
-│   ├── Core/              # Core data types and utilities
-│   │   ├── Assembly.hs    # Assembly representation
-│   │   ├── Ast.hs         # C language AST
-│   │   ├── Monad.hs       # Compiler monad stack
-│   │   └── Settings.hs    # Compiler settings and types
-│   ├── Driver/            # Compiler driver
-│   │   ├── Cli.hs         # Command line interface
-│   │   └── Pipeline.hs    # Compilation pipeline
-│   └── Frontend/          # Parsing and analysis
-│       ├── Lexer.hs       # Lexical analysis
-│       ├── Parse.hs       # Parsing
-│       └── Tokens.hs      # Token definitions
+.
+├── app/                           # Application entry point
+│   └── Main.hs
+├── bin/                           # Binary outputs
+├── lib/                           # Main library code
+│   ├── Halcyon.hs                 # Library entry point
+│   └── Halcyon/                   # Core modules
+│       ├── Backend/               # Code generation and emission
+│       │   ├── Codegen.hs         # TACKY to Assembly conversion
+│       │   ├── Emit.hs            # Assembly to text output
+│       │   └── ReplacePseudos.hs  # Register/stack allocation
+│       ├── Core/                  # Core data types and utilities
+│       │   ├── Assembly.hs        # Assembly representation
+│       │   ├── Ast.hs             # C language AST
+│       │   ├── Monad.hs           # Compiler monad stack
+│       │   ├── Settings.hs        # Compiler settings and types
+│       │   ├── Tacky.hs           # TACKY IR definition
+│       │   └── TackyGen.hs        # AST to TACKY transformation
+│       ├── Driver/                # Compiler driver
+│       │   ├── Cli.hs             # Command line interface
+│       │   └── Pipeline.hs        # Compilation pipeline
+│       └── Frontend/              # Parsing and analysis
+│           ├── Lexer.hs           # Lexical analysis
+│           ├── Parse.hs           # Parsing
+│           └── Tokens.hs          # Token definitions
+├── test/                          # Test suite
+│   └── Main.hs
+├── CHANGELOG.md                   # Version history
+├── LICENSE                        # Project license
+├── README.md                      # Project documentation
+├── flake.nix                      # Nix build configuration
+└── halcyon.cabal                  # Cabal build configuration
 ```
 
 ### Architecture
@@ -95,6 +126,7 @@ Options:
   --lex                 Run lexical analysis only
   --parse               Run parsing only
   --codegen             Run through code generation
+  --tacky               Run through TACKY generation
   -S                    Stop after assembly generation
   -h,--help             Show help text
 ```
