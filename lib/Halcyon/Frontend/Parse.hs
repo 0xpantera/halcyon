@@ -71,16 +71,14 @@ parseReturn = do
 
 -- Expression parsers
 parseExpr :: Parser Expr
-parseExpr = dbg "expr" (choice
-  [ dbg "unary" parseUnary <?> "unary operator"
-  , dbg "term" parseTerm <?> "term"
-  ] <?> "expression")
+parseExpr = dbg "expr" $ parseTerm
 
 parseTerm :: Parser Expr
-parseTerm = dbg "term" (choice
-  [ dbg "constant" (Constant <$> number)
-  , dbg "paren expr" (parens parseExpr)
-  ] <?> "term")
+parseTerm = dbg "term" $ choice
+  [ parens parseExpr
+  , parseUnary
+  , Constant <$> number
+  ]
 
 parens :: Parser a -> Parser a
 parens = between
@@ -89,8 +87,8 @@ parens = between
 
 parseUnary :: Parser Expr
 parseUnary = dbg "unary" $ do
-  op <- dbg "unaryOp" pUnaryOp
-  expr <- dbg "unaryExp" parseExpr
+  op <- pUnaryOp
+  expr <- parseTerm
   case op of
     TokTilde -> 
       pure $ Unary Complement expr
