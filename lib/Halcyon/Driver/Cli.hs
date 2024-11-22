@@ -16,9 +16,10 @@ data AppOptions = AppOptions
 
 stageParser :: Parser Stage
 stageParser = 
-      flag' Lex     (long "lex"     <> help "Run the lexer")
-  <|> flag' Parse   (long "parse"   <> help "Run the lexer and parser")
-  <|> flag' Codegen (long "codegen" <> help "Run through code generation")
+      flag' Lex      (long "lex"     <> help "Run the lexer")
+  <|> flag' Parse    (long "parse"   <> help "Run the lexer and parser")
+  <|> flag' Tacky    (long "tacky"   <> help "Run the lexer, parser, and tacky generator")
+  <|> flag' Codegen  (long "codegen" <> help "Run through code generation")
   <|> flag' Assembly (long "S"      <> help "Stop before assembling")
   <|> pure Executable  -- Default value if no flag is provided
 

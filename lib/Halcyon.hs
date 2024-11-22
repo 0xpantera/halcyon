@@ -16,4 +16,4 @@ import Halcyon.Core.Settings
 import Halcyon.Core.Ast (Program(..))
 import Halcyon.Driver.Pipeline
 import Halcyon.Driver.Cli
-import Halcyon.Frontend.Parse
+import Halcyon.Frontend.Parse ( parseTokens )

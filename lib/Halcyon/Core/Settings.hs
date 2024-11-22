@@ -5,11 +5,13 @@ import Data.Text (Text)
 import Halcyon.Frontend.Tokens (CToken)
 import qualified Halcyon.Core.Ast as Ast
 import qualified Halcyon.Core.Assembly as Asm
+import qualified Halcyon.Core.Tacky as Tacky
 
 
-data Stage = 
-    Lex
+data Stage 
+  = Lex
   | Parse
+  | Tacky
   | Codegen
   | Assembly
   | Executable
@@ -21,6 +23,7 @@ data Target = OSX | Linux
 data StageResult
   = StageResultTokens [CToken]
   | StageResultAST Ast.Program
+  | StageResultTacky Tacky.Program
   | StageResultAsm Asm.Program
   | StageResultAssembly Text
   | StageResultExecutable Text

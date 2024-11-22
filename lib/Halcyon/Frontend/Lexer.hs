@@ -74,11 +74,14 @@ pToken = choice
   [ pKeyword "int"
   , pKeyword "void"
   , pKeyword "return"
-  , pSymbol "(" TokLParen
-  , pSymbol ")" TokRParen
-  , pSymbol "{" TokLBrace
-  , pSymbol "}" TokRBrace
-  , pSymbol ";" TokSemicolon
+  , pSymbol "("  TokLParen
+  , pSymbol ")"  TokRParen
+  , pSymbol "{"  TokLBrace
+  , pSymbol "}"  TokRBrace
+  , pSymbol ";"  TokSemicolon
+  , pSymbol "-"  TokHyphen
+  , pSymbol "--" TokDoubleHyphen
+  , pSymbol "~"  TokTilde
   , pIdentifier
   , pNumber
   ] <?> "token"

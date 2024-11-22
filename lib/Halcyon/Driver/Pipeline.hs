@@ -8,12 +8,19 @@ module Halcyon.Driver.Pipeline
   , handleStageResult
   ) where
 
+
+import qualified System.IO as SIO
+
+
 import Halcyon.Core.Monad
+import qualified Halcyon.Core.Tacky as Tacky
+import Halcyon.Core.TackyGen
 import Halcyon.Driver.Cli (AppOptions(..), Stage(..))
 import qualified Halcyon.Frontend.Lexer as Lexer
 import qualified Halcyon.Frontend.Parse as Parse
 import qualified Halcyon.Backend.Codegen as Codegen
 import qualified Halcyon.Backend.Emit as Emit
+import qualified Halcyon.Backend.ReplacePseudos as Replace
 import qualified Halcyon.Core.Assembly as Asm
 import qualified Halcyon.Core.Ast as Ast
 import Halcyon.Core.Settings (StageResult(..))
@@ -52,21 +59,36 @@ runCompilerStages AppOptions{..} src = case stage of
   Lex -> StageResultTokens <$> runLexStage src
   Parse -> StageResultAST <$> 
     (runLexStage src >>= runParseStage)
+  Tacky -> StageResultTacky <$>
+    (runLexStage src >>= runParseStage >>= debugStage "AST" >>= runTackyStage)
   Codegen -> StageResultAsm <$> 
-    (runLexStage src >>= runParseStage >>= runCodegenStage)
+    (runLexStage src >>= runParseStage >>= runTackyStage >>= debugStage "TACKY" >>= runCodegenStage)
   Assembly -> StageResultAssembly <$>
-    (runLexStage src >>= runParseStage >>= runCodegenStage >>= runEmitStage)
+    (runLexStage src >>= runParseStage >>= runTackyStage >>= runCodegenStage >>= runFixupStage >>= debugStage "ASM" >>= runEmitStage)
   Executable -> StageResultExecutable <$>
-    (runLexStage src >>= runParseStage >>= runCodegenStage >>= runEmitStage)
+    (runLexStage src >>= runParseStage >>= runTackyStage >>= runCodegenStage >>= runFixupStage >>= runEmitStage)
   where
     runLexStage :: MonadCompiler m => T.Text -> m [Tokens.CToken]
     runLexStage input = liftLexResult $ runParser Lexer.lexer "" input
     runParseStage :: MonadCompiler m => [Tokens.CToken] -> m Ast.Program
     runParseStage = liftParseResult . Parse.parseTokens
-    runCodegenStage :: MonadCompiler m => Ast.Program -> m Asm.Program
-    runCodegenStage = liftCompilerEither . Codegen.gen
+    runTackyStage :: MonadCompiler m => Ast.Program -> m Tacky.Program
+    runTackyStage = genTacky
+    runCodegenStage :: MonadCompiler m => Tacky.Program -> m Asm.Program
+    runCodegenStage = return . Codegen.gen
+    runFixupStage :: MonadCompiler m => Asm.Program -> m Asm.Program
+    runFixupStage program = do
+      case Replace.replacePseudos program of
+        Left err -> throwError $ CodegenError $ "Pseudo replacement failed: " <> T.pack (show err)
+        Right (programWithStacks, lastOffset) -> 
+          return $ Replace.fixupProgram programWithStacks lastOffset
     runEmitStage :: MonadCompiler m => Asm.Program -> m T.Text
     runEmitStage = return . Emit.emitProgram
+    debugStage :: (Show a, MonadCompiler m) => String -> a -> m a 
+    debugStage label x = do
+      liftIO $ SIO.hPutStrLn SIO.stderr $ "\n=== " ++ label ++ " ===\n" ++ show x
+      liftIO $ SIO.hFlush SIO.stderr
+      return x
 
 -- | Handle the result of compilation
 handleStageResult :: MonadCompiler m => AppOptions -> StageResult -> m ()
@@ -75,6 +97,8 @@ handleStageResult opts@AppOptions{} = \case
     liftIO $ print tokens
   StageResultAST ast ->
     liftIO $ print ast
+  StageResultTacky tacky ->
+    liftIO $ print tacky
   StageResultAsm asm ->
     liftIO $ print asm
   StageResultAssembly assembly ->
