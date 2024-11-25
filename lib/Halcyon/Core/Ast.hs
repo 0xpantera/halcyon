@@ -2,10 +2,10 @@ module Halcyon.Core.Ast where
 
 import Data.Text ( Text )
 
-data Program = Program FunctionDef
+data Program = Program Function
   deriving (Eq, Show)
 
-data FunctionDef = Function 
+data Function = Function 
   { name :: Text
   , body :: Statement
   } deriving (Eq, Show)
@@ -13,7 +13,9 @@ data FunctionDef = Function
 data Statement = Return Expr
   deriving (Eq, Show)
 
-data Expr = Constant Int | Unary UnaryOp Expr
+data Expr
+  = Constant { value :: Int }
+  | Unary { operator :: UnaryOp, operand :: Expr }
   deriving (Eq, Show)
 
 data UnaryOp = Complement | Negate

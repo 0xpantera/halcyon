@@ -2,20 +2,24 @@ module Halcyon.Core.Tacky where
 
 import Data.Text ( Text )
 
-data Program = Program FunctionDef
+data Program = Program Function
   deriving (Eq, Show)
 
-data FunctionDef = Function
+data Function = Function
   { name :: Text
   , body :: [Instruction]
   } deriving (Eq, Show)
 
-data Instruction 
-  = Return TackyVal
-  | Unary UnaryOp TackyVal TackyVal
+data Instruction
+  = Return { value :: Val }
+  | Unary 
+    { operator :: UnaryOp
+    , src :: Val
+    , dst :: Val 
+    }
   deriving (Eq, Show)
 
-data TackyVal
+data Val
   = Constant Int
   | Var Text
   deriving (Eq, Show)

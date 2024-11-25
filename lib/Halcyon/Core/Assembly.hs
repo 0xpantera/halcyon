@@ -2,20 +2,19 @@ module Halcyon.Core.Assembly where
 
 import Data.Text ( Text )
 
---TODO: use record syntax to name some of the product types
--- e.i. Mov Operand Operand -> Mov {src: Operand, dest: Operand}
-data Program = Program FunctionDef
+
+data Program = Program Function
   deriving (Eq, Show)
 
-data FunctionDef = Function 
+data Function = Function 
   { name         :: Text
   , instructions :: [Instruction]
   } deriving (Eq, Show)
 
-data Instruction 
-  = Mov Operand Operand
-  | Unary UnaryOp Operand
-  | AllocateStack Int
+data Instruction
+  = Mov { src :: Operand, dst :: Operand }
+  | Unary { operator :: UnaryOp, operand :: Operand }
+  | AllocateStack { bytes :: Int }
   | Ret
   deriving (Eq, Show)
 

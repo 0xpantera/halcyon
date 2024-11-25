@@ -15,7 +15,7 @@ import Text.Megaparsec.Debug (dbg)
 
 import Halcyon.Frontend.Tokens
 import Halcyon.Core.Ast
-    ( Program(..), Expr(..), FunctionDef(Function), Statement(..), UnaryOp(..) )
+    ( Program(..), Expr(..), Function(Function), Statement(..), UnaryOp(..) )
 
 -- Type aliases to make signatures cleaner
 type Parser = Parsec CParseError [CToken]
@@ -31,7 +31,7 @@ parseProgram :: Parser Program
 parseProgram = Program <$> parseFunctionDef <?> "program"
 
 -- Function definition parsers
-parseFunctionDef :: Parser FunctionDef
+parseFunctionDef :: Parser Function
 parseFunctionDef = do
   name <- parseFunctionHeader
   body <- parseFunctionBody

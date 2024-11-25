@@ -4,7 +4,7 @@ module Halcyon.Backend.Codegen where
 import qualified Halcyon.Core.Assembly as Asm
 import qualified Halcyon.Core.Tacky as Tacky
 
-convertVal :: Tacky.TackyVal -> Asm.Operand
+convertVal :: Tacky.Val -> Asm.Operand
 convertVal (Tacky.Constant int)   = Asm.Imm int
 convertVal (Tacky.Var identifier) = Asm.Pseudo identifier
 
@@ -25,7 +25,7 @@ convertInstruction (Tacky.Unary op src dest) =
     asmOp   = convertOp op
   in [Asm.Mov asmSrc asmDest, Asm.Unary asmOp asmDest]
 
-convertFunction :: Tacky.FunctionDef -> Asm.FunctionDef
+convertFunction :: Tacky.Function -> Asm.Function
 convertFunction Tacky.Function{..} =
   let instructions = concatMap convertInstruction body
   in Asm.Function {name, instructions}

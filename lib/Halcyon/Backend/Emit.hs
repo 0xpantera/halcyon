@@ -31,7 +31,7 @@ emitInstruction (Asm.Unary op operand) =
 emitInstruction Asm.Ret = 
   "\tmovq %rbp, %rsp\n\tpopq %rbp\n\tret\n"
 
-emitFunction :: Asm.FunctionDef -> Text
+emitFunction :: Asm.Function -> Text
 emitFunction Asm.Function{..} =
   let
     header = 
