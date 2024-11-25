@@ -65,40 +65,47 @@ Programs are represented internally using a series of increasingly lower-level d
 
 ## Project Structure
 
-```
-.
-├── app/                           # Application entry point
-│   └── Main.hs
-├── bin/                           # Binary outputs
-├── lib/                           # Main library code
-│   ├── Halcyon.hs                 # Library entry point
-│   └── Halcyon/                   # Core modules
-│       ├── Backend/               # Code generation and emission
-│       │   ├── Codegen.hs         # TACKY to Assembly conversion
-│       │   ├── Emit.hs            # Assembly to text output
-│       │   └── ReplacePseudos.hs  # Register/stack allocation
-│       ├── Core/                  # Core data types and utilities
-│       │   ├── Assembly.hs        # Assembly representation
-│       │   ├── Ast.hs             # C language AST
-│       │   ├── Monad.hs           # Compiler monad stack
-│       │   ├── Settings.hs        # Compiler settings and types
-│       │   ├── Tacky.hs           # TACKY IR definition
-│       │   └── TackyGen.hs        # AST to TACKY transformation
-│       ├── Driver/                # Compiler driver
-│       │   ├── Cli.hs             # Command line interface
-│       │   └── Pipeline.hs        # Compilation pipeline
-│       └── Frontend/              # Parsing and analysis
-│           ├── Lexer.hs           # Lexical analysis
-│           ├── Parse.hs           # Parsing
-│           └── Tokens.hs          # Token definitions
-├── test/                          # Test suite
-│   └── Main.hs
-├── CHANGELOG.md                   # Version history
-├── LICENSE                        # Project license
-├── README.md                      # Project documentation
-├── flake.nix                      # Nix build configuration
-└── halcyon.cabal                  # Cabal build configuration
-```
+  ```
+  .
+  ├── app/                           # Application entry point
+  │   └── Main.hs
+  ├── bin/                           # Binary outputs
+  ├── lib/                           # Main library code
+  │   ├── Halcyon.hs                 # Library entry point
+  │   └── Halcyon/                   # Core modules
+  │       ├── Backend/               # Code generation and emission
+  │       │   ├── Codegen.hs         # TACKY to Assembly conversion
+  │       │   ├── Emit.hs            # Assembly to text output
+  │       │   └── ReplacePseudos.hs  # Register/stack allocation
+  │       ├── Core/                  # Core data types and utilities
+  │       │   ├── Assembly.hs        # Assembly representation
+  │       │   ├── Ast.hs             # C language AST
+  │       │   ├── Monad.hs           # Compiler monad stack
+  │       │   ├── Settings.hs        # Compiler settings and types
+  │       │   ├── Tacky.hs           # TACKY IR definition
+  │       │   └── TackyGen.hs        # AST to TACKY transformation
+  │       ├── Driver/                # Compiler driver
+  │       │   ├── Cli.hs             # Command line interface
+  │       │   └── Pipeline.hs        # Compilation pipeline
+  │       └── Frontend/              # Parsing and analysis
+  │           ├── Lexer.hs           # Lexical analysis
+  │           ├── Parse.hs           # Parsing
+  │           └── Tokens.hs          # Token definitions
+  ├── test/                          # Test suite
+  │   ├── Main.hs
+  │   └── Test/
+  │       ├── Lexer.hs
+  │       ├── Parser.hs
+  │       ├── Tacky.hs
+  │       ├── Assembly.hs
+  │       ├── Pipeline.hs
+  │       └── Common.hs
+  ├── CHANGELOG.md                   # Version history
+  ├── LICENSE                        # Project license
+  ├── README.md                      # Project documentation
+  ├── flake.nix                      # Nix build configuration
+  └── halcyon.cabal                  # Cabal build configuration
+  ```
 
 ### Architecture
 
@@ -147,6 +154,37 @@ cabal run halcyon -- input.c
 cabal run halcyon -- --lex input.c
 ```
 
+## Testing
+
+Halcyon uses Hspec and Tasty for its test suite. The tests cover all stages of compilation:
+
+```bash
+# Run all tests
+cabal test
+
+# Run tests with output
+cabal test --test-show-details=direct
+
+# Run a specific test module
+cabal test --test-pattern "Lexer"
+```
+
+The test suite includes:
+
+- Unit tests for each compiler stage
+- Integration tests for the full pipeline
+- Helper utilities for building test cases
+
+Tests are organized by compiler stage in `test/Test/`:
+
+- `Lexer.hs`: Token generation
+- `Parser.hs`: AST construction
+- `Tacky.hs`: TACKY IR generation
+- `Assembly.hs`: Assembly generation
+- `Pipeline.hs`: Full compilation pipeline
+- `Common.hs`: Shared test utilities
+
+
 ## External Dependencies
 
 Halcyon relies on the following system tools:
@@ -168,7 +206,7 @@ The compiler provides detailed error reporting for:
 
 ### The Basics
 - [x] A minimal compiler
-- [ ] Unary operators
+- [x] Unary operators
 - [ ] Binary operators
 - [ ] Logical and relational operators
 - [ ] Local variables

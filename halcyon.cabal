@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               halcyon
-version:            0.2.0.0
+version:            0.2.1.0
 -- synopsis:
 -- description:
 license:            BSD-3-Clause
@@ -70,6 +70,7 @@ test-suite halcyon-test
         , Test.Parser
         , Test.Tacky
         , Test.Assembly
+        , Test.Pipeline
     -- other-extensions:
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
