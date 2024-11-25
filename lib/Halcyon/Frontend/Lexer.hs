@@ -3,8 +3,6 @@ module Halcyon.Frontend.Lexer where
 
 import Data.Functor (($>))
 import Data.Text (Text)
-import Data.Set (Set)
-import qualified Data.Set as Set
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -35,9 +33,9 @@ pKeyword kw = lexeme $ try $ do
   notFollowedBy alphaNumChar <?> 
     "end of keyword '" <> T.unpack kw <> "'"
   return $ case kw of
-    "int"    -> TokInt
-    "void"   -> TokVoid
-    "return" -> TokReturn
+    "int"    -> KwInt
+    "void"   -> KwVoid
+    "return" -> KwReturn
     _        -> error "Invalid keyword"
 
 pIdentifier :: Lexer CToken
@@ -49,7 +47,7 @@ pIdentifier = lexeme $ try $ do
   if T.length ident > 31
     then customFailure $ LexicalError $ InvalidSequence ident 
       "identifier must be 31 characters or less"
-    else return $ TokIdent ident
+    else return $ Identifier ident
 
 pNumber :: Lexer CToken
 pNumber = lexeme $ try $ do
@@ -62,7 +60,7 @@ pNumber = lexeme $ try $ do
       let n = read digits
       in if n > (2^31 - 1) 
          then customFailure $ MalformedNumber "Integer too large"
-         else return $ TokNumber n
+         else return $ Number n
 
 pSymbol :: Text -> CToken -> Lexer CToken
 pSymbol sym tok = lexeme $ try $ 
@@ -74,14 +72,14 @@ pToken = choice
   [ pKeyword "int"
   , pKeyword "void"
   , pKeyword "return"
-  , pSymbol "("  TokLParen
-  , pSymbol ")"  TokRParen
-  , pSymbol "{"  TokLBrace
-  , pSymbol "}"  TokRBrace
-  , pSymbol ";"  TokSemicolon
-  , pSymbol "-"  TokHyphen
-  , pSymbol "--" TokDoubleHyphen
-  , pSymbol "~"  TokTilde
+  , pSymbol "("  LParen
+  , pSymbol ")"  RParen
+  , pSymbol "{"  LBrace
+  , pSymbol "}"  RBrace
+  , pSymbol ";"  Semicolon
+  , pSymbol "-"  Hyphen
+  , pSymbol "--" DoubleHyphen
+  , pSymbol "~"  Tilde
   , pIdentifier
   , pNumber
   ] <?> "token"

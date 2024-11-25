@@ -47,3 +47,12 @@
   - Assembly generation tests
   - Full pipeline integration tests
 - Test utilities and helper functions in Test.Common
+
+## 0.2.2.0 -- 2024-11-25
+
+### Changed
+- Improved type definitions across compiler stages
+- Added record syntax for multi-field data constructors
+- Standardized naming conventions in core types
+- Simplified token type names
+- Made qualified imports consistent across modules

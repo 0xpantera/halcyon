@@ -27,40 +27,53 @@ The compiler processes source code through the following stages:
 Programs are represented internally using a series of increasingly lower-level data structures:
 
 1. **Abstract Syntax Tree (AST)**:
-   ```haskell
-   data Program = Program FunctionDef
-   data FunctionDef = Function 
-     { name :: Text
-     , body :: Statement 
-     }
-   data Statement = Return Expr
-   data Expr = Constant Int | Unary UnaryOp Expr
-   data UnaryOp = Complement | Negate
-   ```
+  ```haskell
+  data Program = Program Function
+  data Function = Function 
+    { name :: Text
+    , body :: Statement 
+    }
+  data Statement = Return Expr
+  data Expr
+    = Constant { value :: Int }
+    | Unary { operator :: UnaryOp, operand :: Expr }
+  data UnaryOp = Complement | Negate
+  ```
 
 2. **TACKY IR**:
   ```haskell
-  data Program = Program FunctionDef
-  data FunctionDef = Function 
+  data Program = Program Function
+  data Function = Function 
     { name :: Text
     , body :: [Instruction]
     }
-  data Instruction 
-    = Return TackyVal
-    | Unary UnaryOp TackyVal TackyVal
-  data TackyVal = Constant Int | Var Text
+  data Instruction
+    = Return { value :: Val }
+    | Unary { operator :: UnaryOp, src :: Val, dst :: Val }
+  data Val = Constant Int | Var Text
+  data UnaryOp = Complement | Negate
   ```
 
 3. **Assembly AST**:
-   ```haskell
-   data Program = Program FunctionDef
-   data FunctionDef = Function 
-     { name :: Text
-     , instructions :: [Instruction]
-     }
-   data Instruction = Mov Operand Operand | Ret
-   data Operand = Imm Int | Register
-   ```
+  ```haskell
+  data Program = Program Function
+  data Function = Function 
+    { name :: Text
+    , instructions :: [Instruction]
+    }
+  data Instruction
+    = Mov { src :: Operand, dst :: Operand }
+    | Unary { operator :: UnaryOp, operand :: Operand }
+    | AllocateStack { bytes :: Int }
+    | Ret
+  data Operand 
+    = Imm Int 
+    | Register Reg
+    | Pseudo Text
+    | Stack Int
+  data UnaryOp = Neg | Not
+  data Reg = Ax | R10
+  ```
 
 
 ## Project Structure
