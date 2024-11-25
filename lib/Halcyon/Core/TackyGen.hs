@@ -18,7 +18,7 @@ newtype TackyGenT m a = TackyGenT
 
 data TackyGenRes = TackyGenRes
   { instructions :: [Tacky.Instruction]
-  , resultVal :: Tacky.TackyVal 
+  , resultVal :: Tacky.Val 
   } deriving (Show, Eq)
 
 -- Helper to generate unique names
@@ -51,7 +51,7 @@ emitTackyForStmnt (Ast.Return e) = do
   TackyGenRes{..} <- emitTackyForExpr e
   pure $ TackyGenRes {..}
 
-emitTackyForFunc :: Monad m => Ast.FunctionDef -> TackyGenT m Tacky.FunctionDef
+emitTackyForFunc :: Monad m => Ast.Function -> TackyGenT m Tacky.Function
 emitTackyForFunc Ast.Function{..} = do
   TackyGenRes{..} <- emitTackyForStmnt body
   let finalInstrs = instructions ++ [Tacky.Return resultVal]

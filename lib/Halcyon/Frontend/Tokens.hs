@@ -20,19 +20,22 @@ import qualified Data.List.NonEmpty as NE
 
 -- | Tokens produced by lexical analysis
 data CToken
-  = TokInt       
-  | TokVoid    
-  | TokReturn 
-  | TokIdent Text
-  | TokNumber Int
-  | TokLParen    
-  | TokRParen    
-  | TokLBrace    
-  | TokRBrace    
-  | TokSemicolon
-  | TokHyphen
-  | TokDoubleHyphen  
-  | TokTilde
+  -- Values
+  = Identifier Text -- TokIdent Text
+  | Number Int      -- TokNumber Int
+  -- Keywords  
+  | KwInt      -- TokInt
+  | KwVoid     -- TokVoid
+  | KwReturn   -- TokReturn
+  -- Punctuation
+  | LParen       -- TokLParen
+  | RParen      -- TokRParen
+  | LBrace       -- TokLBrace
+  | RBrace      -- TokRBrace
+  | Semicolon       -- TokSemicolon
+  | Hyphen          -- TokHyphen
+  | DoubleHyphen    -- TokDoubleHyphen
+  | Tilde           -- TokTilde
   deriving (Eq, Show, Ord)
 
 -- | Common syntax errors that can occur in both lexing and parsing
@@ -100,19 +103,19 @@ formatSyntaxError = \case
 instance ShowErrorComponent CToken where
   showErrorComponent :: CToken -> String
   showErrorComponent = \case
-    TokInt -> "keyword 'int'"
-    TokVoid -> "keyword 'void'"
-    TokReturn -> "keyword 'return'"
-    TokIdent t -> "identifier '" <> T.unpack t <> "'"
-    TokNumber n -> "number " <> show n
-    TokLParen -> "left parenthesis '('"
-    TokRParen -> "right parenthesis ')'"
-    TokLBrace -> "left brace '{'"
-    TokRBrace -> "right brace '}'"
-    TokSemicolon -> "semicolon ';'"
-    TokTilde -> "tilde '~'"
-    TokHyphen -> "hyphen '-'"
-    TokDoubleHyphen -> "double hyphen '--'"
+    KwInt -> "keyword 'int'"
+    KwVoid -> "keyword 'void'"
+    KwReturn -> "keyword 'return'"
+    Identifier t -> "identifier '" <> T.unpack t <> "'"
+    Number n -> "number " <> show n
+    LParen -> "left parenthesis '('"
+    RParen -> "right parenthesis ')'"
+    LBrace -> "left brace '{'"
+    RBrace -> "right brace '}'"
+    Semicolon -> "semicolon ';'"
+    Tilde -> "tilde '~'"
+    Hyphen -> "hyphen '-'"
+    DoubleHyphen -> "double hyphen '--'"
 
 -- For better error messages - shows a preview of tokens
 instance VisualStream [CToken] where

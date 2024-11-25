@@ -15,7 +15,7 @@ import Text.Megaparsec.Debug (dbg)
 
 import Halcyon.Frontend.Tokens
 import Halcyon.Core.Ast
-    ( Program(..), Expr(..), FunctionDef(Function), Statement(..), UnaryOp(..) )
+    ( Program(..), Expr(..), Function(Function), Statement(..), UnaryOp(..) )
 
 -- Type aliases to make signatures cleaner
 type Parser = Parsec CParseError [CToken]
@@ -31,7 +31,7 @@ parseProgram :: Parser Program
 parseProgram = Program <$> parseFunctionDef <?> "program"
 
 -- Function definition parsers
-parseFunctionDef :: Parser FunctionDef
+parseFunctionDef :: Parser Function
 parseFunctionDef = do
   name <- parseFunctionHeader
   body <- parseFunctionBody
@@ -39,21 +39,21 @@ parseFunctionDef = do
 
 parseFunctionHeader :: Parser Text
 parseFunctionHeader = do
-  void $ matchToken TokInt
+  void $ matchToken KwInt
   name <- identifier
   void $ parseParams
   return name <?> "function header"
 
 parseParams :: Parser ()
 parseParams = between 
-  (matchToken TokLParen) 
-  (matchToken TokRParen)
-  (void (matchToken TokVoid <?> "void")) <?> "function parameters"
+  (matchToken LParen) 
+  (matchToken RParen)
+  (void (matchToken KwVoid <?> "void")) <?> "function parameters"
 
 parseFunctionBody :: Parser Statement
 parseFunctionBody = between 
-  (matchToken TokLBrace)
-  (matchToken TokRBrace)
+  (matchToken LBrace)
+  (matchToken RBrace)
   parseStatement <?> "function body"
 
 -- Statement parsers
@@ -64,9 +64,9 @@ parseStatement = choice
 
 parseReturn :: Parser Statement
 parseReturn = do
-  void (matchToken TokReturn <?> "return keyword")
+  void (matchToken KwReturn <?> "return keyword")
   expr <- parseExpr
-  void (matchToken TokSemicolon <?> "semicolon")
+  void (matchToken Semicolon <?> "semicolon")
   return $ Return expr
 
 -- Expression parsers
@@ -82,27 +82,27 @@ parseTerm = dbg "term" $ choice
 
 parens :: Parser a -> Parser a
 parens = between
-  (matchToken TokLParen)
-  (matchToken TokRParen)
+  (matchToken LParen)
+  (matchToken RParen)
 
 parseUnary :: Parser Expr
 parseUnary = dbg "unary" $ do
   op <- pUnaryOp
   expr <- parseTerm
   case op of
-    TokTilde -> 
+    Tilde -> 
       pure $ Unary Complement expr
-    TokHyphen -> 
+    Hyphen -> 
       pure $ Unary Negate expr
-    TokDoubleHyphen -> 
-      customFailure $ UnexpectedToken TokDoubleHyphen "Not yet implemented"
+    DoubleHyphen -> 
+      customFailure $ UnexpectedToken DoubleHyphen "Not yet implemented"
     badTok -> 
       customFailure $ UnexpectedToken badTok "No."
 
 pUnaryOp :: Parser CToken
-pUnaryOp = (matchToken TokTilde <?> "bitwise complement operator")
-  <|> (matchToken TokHyphen <?> "negation operator")
-  <|> (matchToken TokDoubleHyphen <?> "decrement operator")
+pUnaryOp = (matchToken Tilde <?> "bitwise complement operator")
+  <|> (matchToken Hyphen <?> "negation operator")
+  <|> (matchToken DoubleHyphen <?> "decrement operator")
 
 -- Token level parsers
 matchToken :: CToken -> Parser CToken
@@ -116,13 +116,13 @@ matchToken expected = token test expectedSet <?> show expected
 identifier :: Parser Text
 identifier = token test expectedSet <?> "identifier"
   where
-    test (TokIdent t) = Just t
+    test (Identifier t) = Just t
     test _ = Nothing
     expectedSet = Set.singleton $ Label ('i' :| "dentifier")
 
 number :: Parser Int
 number = token test expectedSet <?> "number"
   where
-    test (TokNumber n) = Just n
+    test (Number n) = Just n
     test _ = Nothing
     expectedSet = Set.singleton $ Label ('n' :| "umber")
