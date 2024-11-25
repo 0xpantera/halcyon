@@ -3,21 +3,21 @@ module Halcyon.Core.Ast where
 import Data.Text ( Text )
 
 data Program = Program FunctionDef
-  deriving Show
+  deriving (Eq, Show)
 
 data FunctionDef = Function 
   { name :: Text
   , body :: Statement
-  } deriving Show
+  } deriving (Eq, Show)
 
 data Statement = Return Expr
-  deriving Show
+  deriving (Eq, Show)
 
 data Expr = Constant Int | Unary UnaryOp Expr
-  deriving Show
+  deriving (Eq, Show)
 
 data UnaryOp = Complement | Negate
-  deriving Show
+  deriving (Eq, Show)
 
 -- Formal Grammar in EBNF
 -- <program> ::= <function>

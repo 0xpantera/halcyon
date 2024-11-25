@@ -35,3 +35,15 @@
 - Compiler pipeline now includes TACKY transformation stage
 - Assembly generation now works from TACKY rather than directly from AST
 - Parser improved to handle nested expressions correctly
+
+## 0.2.1.0 -- 2024-11-25
+
+### Added
+- Comprehensive test suite with Hspec and Tasty
+- Unit tests for all compiler stages:
+  - Lexer tests
+  - Parser tests
+  - TACKY generation tests 
+  - Assembly generation tests
+  - Full pipeline integration tests
+- Test utilities and helper functions in Test.Common

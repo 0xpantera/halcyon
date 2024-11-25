@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               halcyon
-version:            0.2.0.0
+version:            0.2.1.0
 -- synopsis:
 -- description:
 license:            BSD-3-Clause
@@ -19,13 +19,12 @@ common warnings
 library
     import:           warnings
     exposed-modules:
-        Halcyon
-    other-modules:
-          Halcyon.Core.Settings
+          Halcyon
+        , Halcyon.Core.Settings
         , Halcyon.Core.Ast
         , Halcyon.Core.Assembly
         , Halcyon.Core.Monad
-        , Halcyon.Core.Tacky
+        , Halcyon.Core.Tacky 
         , Halcyon.Core.TackyGen
         , Halcyon.Frontend.Lexer
         , Halcyon.Frontend.Parse
@@ -35,6 +34,7 @@ library
         , Halcyon.Backend.ReplacePseudos
         , Halcyon.Driver.Cli
         , Halcyon.Driver.Pipeline
+    other-modules:
     -- other-extensions:
     build-depends:    base ^>=4.20.0.0
         , bytestring
@@ -65,11 +65,26 @@ executable halcyon
 test-suite halcyon-test
     import:           warnings
     default-language: GHC2024
-    -- other-modules:
+    other-modules:
+          Test.Lexer
+        , Test.Parser
+        , Test.Tacky
+        , Test.Assembly
+        , Test.Pipeline
     -- other-extensions:
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs
     build-depends:
-        base ^>=4.20.0.0,
-        halcyon
+          base ^>=4.20.0.0
+        , halcyon
+        , tasty ^>=1.4
+        , tasty-hspec ^>=1.2
+        , tasty-hedgehog ^>=1.4
+        , tasty-golden ^>=2.3
+        , hedgehog ^>=1.4
+        , hspec ^>=2.11
+        , text
+        , megaparsec
+        , directory
+        , filepath
