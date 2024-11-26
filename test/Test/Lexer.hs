@@ -14,16 +14,20 @@ lexerSpecs = describe "Lexer" $ do
       
     it "lexes simple return" $
       parse lexer "" "return 42;" `shouldParse` 
-        [TokReturn, TokNumber 42, TokSemicolon]
+        [KwReturn, Number 42, Semicolon]
 
   describe "unary operators" $ do
     it "lexes negation" $
       parse lexer "" "-42" `shouldParse`
-        [TokHyphen, TokNumber 42]
+        [Hyphen, Number 42]
         
     it "lexes complement" $
       parse lexer "" "~42" `shouldParse`
-        [TokTilde, TokNumber 42]
+        [Tilde, Number 42]
+
+    it "lexes binary operators" $
+      parse lexer "" "1 + 2 * 3" `shouldParse`
+        [Number 1, Plus, Number 2, Star, Number 3]
 
 
 -- Helper for cleaner parse result assertions  
