@@ -32,7 +32,7 @@ emitInstruction Asm.Ret =
   "\tmovq %rbp, %rsp\n\tpopq %rbp\n\tret\n"
 
 emitFunction :: Asm.Function -> Text
-emitFunction Asm.Function{..} =
+emitFunction (Asm.Function _ instructions) =
   let
     header = 
       "\t.globl _main\n" <>

@@ -52,10 +52,10 @@ emitTackyForStmnt (Ast.Return e) = do
   pure $ TackyGenRes {..}
 
 emitTackyForFunc :: Monad m => Ast.Function -> TackyGenT m Tacky.Function
-emitTackyForFunc Ast.Function{..} = do
+emitTackyForFunc (Ast.Function name body) = do
   TackyGenRes{..} <- emitTackyForStmnt body
   let finalInstrs = instructions ++ [Tacky.Return resultVal]
-  pure $ Tacky.Function {name, body = finalInstrs}
+  pure $ Tacky.Function name finalInstrs
 
 emitTackyProgram :: Monad m => Ast.Program -> TackyGenT m Tacky.Program
 emitTackyProgram (Ast.Program fnDef) = do

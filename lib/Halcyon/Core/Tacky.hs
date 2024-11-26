@@ -5,18 +5,12 @@ import Data.Text ( Text )
 data Program = Program Function
   deriving (Eq, Show)
 
-data Function = Function
-  { name :: Text
-  , body :: [Instruction]
-  } deriving (Eq, Show)
+data Function = Function Text [Instruction]
+  deriving (Eq, Show)
 
 data Instruction
-  = Return { value :: Val }
-  | Unary 
-    { operator :: UnaryOp
-    , src :: Val
-    , dst :: Val 
-    }
+  = Return Val
+  | Unary UnaryOp Val Val 
   deriving (Eq, Show)
 
 data Val

@@ -6,15 +6,13 @@ import Data.Text ( Text )
 data Program = Program Function
   deriving (Eq, Show)
 
-data Function = Function 
-  { name         :: Text
-  , instructions :: [Instruction]
-  } deriving (Eq, Show)
+data Function = Function Text [Instruction]
+  deriving (Eq, Show)
 
 data Instruction
-  = Mov { src :: Operand, dst :: Operand }
-  | Unary { operator :: UnaryOp, operand :: Operand }
-  | AllocateStack { bytes :: Int }
+  = Mov Operand Operand
+  | Unary UnaryOp Operand
+  | AllocateStack Int
   | Ret
   deriving (Eq, Show)
 

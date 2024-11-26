@@ -64,9 +64,9 @@ replacePseudoInst = \case
   Asm.AllocateStack _ -> throwError UnexpectedAllocateStack
 
 replacePseudoFunc :: MonadReplace m => Asm.Function -> m Asm.Function
-replacePseudoFunc func@Asm.Function{..} = do
+replacePseudoFunc (Asm.Function name instructions) = do
   fixedInstructions <- traverse replacePseudoInst instructions
-  pure $ func { Asm.instructions = fixedInstructions }
+  pure $ Asm.Function name fixedInstructions
 
 replacePseudos :: Asm.Program -> PseudoM (Asm.Program, Int)
 replacePseudos (Asm.Program f) = do
@@ -86,12 +86,12 @@ fixupInstruction (Asm.Mov (Asm.Stack src) (Asm.Stack dst)) =
 fixupInstruction other = [ other ]
 
 fixupFunction :: Asm.Function -> Int -> Asm.Function
-fixupFunction (Asm.Function{..}) lastStackSlot = Asm.Function 
-  { name
-  , instructions = 
-      (Asm.AllocateStack lastStackSlot) 
+fixupFunction (Asm.Function name instructions) lastStackSlot =
+  let fixedInstructions = 
+        (Asm.AllocateStack lastStackSlot) 
         : concatMap fixupInstruction instructions
-  }
+  in Asm.Function name $ fixedInstructions
+
 
 fixupProgram :: Asm.Program -> Int -> Asm.Program
 fixupProgram (Asm.Program f) lastStackSlot =

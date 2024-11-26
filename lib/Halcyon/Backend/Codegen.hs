@@ -26,9 +26,9 @@ convertInstruction (Tacky.Unary op src dest) =
   in [Asm.Mov asmSrc asmDest, Asm.Unary asmOp asmDest]
 
 convertFunction :: Tacky.Function -> Asm.Function
-convertFunction Tacky.Function{..} =
+convertFunction (Tacky.Function name body) =
   let instructions = concatMap convertInstruction body
-  in Asm.Function {name, instructions}
+  in Asm.Function name instructions
 
 gen :: Tacky.Program -> Asm.Program
 gen (Tacky.Program fnDef) = Asm.Program $ convertFunction fnDef
