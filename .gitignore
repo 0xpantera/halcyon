@@ -3,3 +3,4 @@ dist-newstyle/
 flake.lock
 c-programs/
 .DS_Store
+ai-context.txt
