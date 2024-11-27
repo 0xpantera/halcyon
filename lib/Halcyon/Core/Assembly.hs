@@ -12,11 +12,17 @@ data Function = Function Text [Instruction]
 data Instruction
   = Mov Operand Operand
   | Unary UnaryOp Operand
+  | Binary BinaryOp Operand Operand
+  | Idiv Operand
+  | Cdq
   | AllocateStack Int
   | Ret
   deriving (Eq, Show)
 
 data UnaryOp = Neg | Not
+  deriving (Eq, Show)
+
+data BinaryOp = Add | Sub | Mult
   deriving (Eq, Show)
 
 data Operand 
@@ -26,7 +32,7 @@ data Operand
   | Stack Int
   deriving (Eq, Show)
 
-data Reg = Ax | R10
+data Reg = Ax | DX | R10 | R11
   deriving (Eq, Show)
 
 {-
@@ -35,13 +41,13 @@ function_definition = Function(identifier name, instruction* instructions)
 instruction 
   = Mov(operand src, operand dst)
   | Unary(unary_operator, operand)
+  | Binary(binary_operator, operand, operand)
+  | Idiv(operand)
+  | Cdq
   | AllocateStack(int)
   | Ret
 unary_operator = Neg | Not
-operand 
-  = Imm(int) 
-  | Reg(reg) 
-  | Pseudo(identifier) 
-  | Stack(int)
-reg = AX | R10
+binary_operator = Add | Sub | Mult
+operand = Imm(int) | Reg(reg) | Pseudo(identifier) | Stack(int)
+reg = AX | DX | R10 | R11
 -}
