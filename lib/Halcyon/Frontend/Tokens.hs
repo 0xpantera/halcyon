@@ -21,21 +21,25 @@ import qualified Data.List.NonEmpty as NE
 -- | Tokens produced by lexical analysis
 data CToken
   -- Values
-  = Identifier Text -- TokIdent Text
-  | Number Int      -- TokNumber Int
+  = Identifier Text
+  | Number Int
   -- Keywords  
-  | KwInt      -- TokInt
-  | KwVoid     -- TokVoid
-  | KwReturn   -- TokReturn
+  | KwInt
+  | KwVoid
+  | KwReturn
   -- Punctuation
-  | LParen       -- TokLParen
-  | RParen      -- TokRParen
-  | LBrace       -- TokLBrace
-  | RBrace      -- TokRBrace
-  | Semicolon       -- TokSemicolon
-  | Hyphen          -- TokHyphen
-  | DoubleHyphen    -- TokDoubleHyphen
-  | Tilde           -- TokTilde
+  | LParen
+  | RParen
+  | LBrace
+  | RBrace
+  | Semicolon
+  | Hyphen
+  | DoubleHyphen
+  | Tilde
+  | Plus
+  | Star
+  | Slash
+  | Percent
   deriving (Eq, Show, Ord)
 
 -- | Common syntax errors that can occur in both lexing and parsing
@@ -116,6 +120,10 @@ instance ShowErrorComponent CToken where
     Tilde -> "tilde '~'"
     Hyphen -> "hyphen '-'"
     DoubleHyphen -> "double hyphen '--'"
+    Plus -> "pluse '+'"
+    Star -> "star '*'"
+    Slash -> "slash '/'"
+    Percent -> "percent '%'"
 
 -- For better error messages - shows a preview of tokens
 instance VisualStream [CToken] where

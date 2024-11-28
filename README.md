@@ -29,42 +29,40 @@ Programs are represented internally using a series of increasingly lower-level d
 1. **Abstract Syntax Tree (AST)**:
   ```haskell
   data Program = Program Function
-  data Function = Function 
-    { name :: Text
-    , body :: Statement 
-    }
+  data Function = Function Text Statement
   data Statement = Return Expr
   data Expr
-    = Constant { value :: Int }
-    | Unary { operator :: UnaryOp, operand :: Expr }
+    = Constant Int
+    | Unary UnaryOp Expr
+    | Binary BinaryOp Expr Expr
   data UnaryOp = Complement | Negate
+  data BinaryOp = Add | Subtract | Multiply | Divide | Remainder
   ```
 
 2. **TACKY IR**:
   ```haskell
   data Program = Program Function
-  data Function = Function 
-    { name :: Text
-    , body :: [Instruction]
-    }
+  data Function = Function Text [Instruction]
   data Instruction
-    = Return { value :: Val }
-    | Unary { operator :: UnaryOp, src :: Val, dst :: Val }
+    = Return Val
+    | Unary UnaryOp Val Val
+    | Binary BinaryOp Val Val Val
   data Val = Constant Int | Var Text
   data UnaryOp = Complement | Negate
+  data BinaryOp = Add | Subtract | Multiply | Divide | Remainder
   ```
 
 3. **Assembly AST**:
   ```haskell
   data Program = Program Function
-  data Function = Function 
-    { name :: Text
-    , instructions :: [Instruction]
-    }
+  data Function = Function Text [Instruction]
   data Instruction
-    = Mov { src :: Operand, dst :: Operand }
-    | Unary { operator :: UnaryOp, operand :: Operand }
-    | AllocateStack { bytes :: Int }
+    = Mov Operand Operand
+    | Unary UnaryOp Operand
+    | Binary BinaryOp Operand Operand
+    | Idiv Operand
+    | Cdq
+    | AllocateStack Int
     | Ret
   data Operand 
     = Imm Int 
@@ -72,7 +70,8 @@ Programs are represented internally using a series of increasingly lower-level d
     | Pseudo Text
     | Stack Int
   data UnaryOp = Neg | Not
-  data Reg = Ax | R10
+  data BinaryOp = Add | Sub | Mult
+  data Reg = Ax | DX | R10 | R11
   ```
 
 
@@ -220,7 +219,7 @@ The compiler provides detailed error reporting for:
 ### The Basics
 - [x] A minimal compiler
 - [x] Unary operators
-- [ ] Binary operators
+- [x] Binary operators
 - [ ] Logical and relational operators
 - [ ] Local variables
 - [ ] if statements and conditional expressions

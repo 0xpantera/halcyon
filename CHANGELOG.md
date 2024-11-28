@@ -56,3 +56,18 @@
 - Standardized naming conventions in core types
 - Simplified token type names
 - Made qualified imports consistent across modules
+
+## 0.3.0.0 -- 2024-11-27
+
+### Added
+- Support for binary operators:
+  - Addition
+  - Subtraction  
+  - Multiplication
+  - Division
+  - Remainder
+- Precedence climbing parser for handling operator precedence
+- New assembly instructions for binary operations (add, sub, imul, idiv)
+- Proper handling of division and remainder with EAX/EDX registers
+- Sign extension support using cdq instruction
+- Updated instruction fix-up pass for binary operation constraints

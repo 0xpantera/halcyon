@@ -2,3 +2,5 @@ writing-a-c-compiler-tests/
 dist-newstyle/
 flake.lock
 c-programs/
+.DS_Store
+ai-context.txt

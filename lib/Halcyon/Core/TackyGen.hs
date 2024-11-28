@@ -28,9 +28,17 @@ freshTemp = do
   put (n + 1)
   pure $ "tmp." <> T.pack (show n)
 
-convertOp :: Ast.UnaryOp -> Tacky.UnaryOp
-convertOp Ast.Complement = Tacky.Complement
-convertOp Ast.Negate     = Tacky.Negate
+convertUnaryOp :: Ast.UnaryOp -> Tacky.UnaryOp
+convertUnaryOp Ast.Complement = Tacky.Complement
+convertUnaryOp Ast.Negate     = Tacky.Negate
+
+convertBinaryOp :: Ast.BinaryOp -> Tacky.BinaryOp
+convertBinaryOp = \case
+  Ast.Add       -> Tacky.Add
+  Ast.Subtract  -> Tacky.Subtract
+  Ast.Multiply  -> Tacky.Multiply
+  Ast.Divide    -> Tacky.Divide
+  Ast.Remainder -> Tacky.Remainder
 
 emitTackyForExpr :: Monad m => Ast.Expr -> TackyGenT m TackyGenRes
 emitTackyForExpr = \case
@@ -41,10 +49,25 @@ emitTackyForExpr = \case
     TackyGenRes{..} <- emitTackyForExpr inner
     let 
       dst = Tacky.Var dstName
-      tackyOp = convertOp op
+      tackyOp = convertUnaryOp op
       newInstr = Tacky.Unary tackyOp resultVal dst
     pure $ TackyGenRes
-      { instructions = instructions ++ [newInstr], resultVal = dst }
+      { instructions = instructions <> [newInstr], resultVal = dst }
+  Ast.Binary op l r -> do
+    dstName <- freshTemp
+    TackyGenRes{
+      instructions = leftInst, 
+      resultVal    = leftVal } <- emitTackyForExpr l
+    TackyGenRes{
+      instructions = rightInst,
+      resultVal    = rightVal } <- emitTackyForExpr r
+    let
+      dst = Tacky.Var dstName
+      tackyOp = convertBinaryOp op
+      newInstr = Tacky.Binary tackyOp leftVal rightVal dst
+      combinedInstr = leftInst <> rightInst <> [newInstr]
+    pure $ TackyGenRes
+      { instructions = combinedInstr, resultVal = dst }
         
 emitTackyForStmnt :: Monad m => Ast.Statement -> TackyGenT m TackyGenRes
 emitTackyForStmnt (Ast.Return e) = do
@@ -52,10 +75,10 @@ emitTackyForStmnt (Ast.Return e) = do
   pure $ TackyGenRes {..}
 
 emitTackyForFunc :: Monad m => Ast.Function -> TackyGenT m Tacky.Function
-emitTackyForFunc Ast.Function{..} = do
+emitTackyForFunc (Ast.Function name body) = do
   TackyGenRes{..} <- emitTackyForStmnt body
-  let finalInstrs = instructions ++ [Tacky.Return resultVal]
-  pure $ Tacky.Function {name, body = finalInstrs}
+  let finalInstrs = instructions <> [Tacky.Return resultVal]
+  pure $ Tacky.Function name finalInstrs
 
 emitTackyProgram :: Monad m => Ast.Program -> TackyGenT m Tacky.Program
 emitTackyProgram (Ast.Program fnDef) = do

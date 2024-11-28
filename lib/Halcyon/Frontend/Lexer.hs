@@ -80,6 +80,10 @@ pToken = choice
   , pSymbol "-"  Hyphen
   , pSymbol "--" DoubleHyphen
   , pSymbol "~"  Tilde
+  , pSymbol "+"  Plus
+  , pSymbol "*"  Star
+  , pSymbol "/"  Slash
+  , pSymbol "%"  Percent
   , pIdentifier
   , pNumber
   ] <?> "token"

@@ -10,12 +10,12 @@ import Control.Monad.Combinators.Expr
 import Data.Text (Text)
 import qualified Data.Set as Set
 import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NE
 import Text.Megaparsec
 import Text.Megaparsec.Debug (dbg)
 
 import Halcyon.Frontend.Tokens
 import Halcyon.Core.Ast
-    ( Program(..), Expr(..), Function(Function), Statement(..), UnaryOp(..) )
 
 -- Type aliases to make signatures cleaner
 type Parser = Parsec CParseError [CToken]
@@ -24,60 +24,75 @@ type ParseResult = Either HalcyonParseError Program
 
 -- Main entry point
 parseTokens :: [CToken] -> ParseResult
-parseTokens ctokens = runParser (parseProgram <* eof) "" ctokens
+parseTokens ctokens = runParser (pProgram <* eof) "" ctokens
 
--- Program level parser
-parseProgram :: Parser Program
-parseProgram = Program <$> parseFunctionDef <?> "program"
+pProgram :: Parser Program
+pProgram = Program <$> pFunction <?> "program"
 
--- Function definition parsers
-parseFunctionDef :: Parser Function
-parseFunctionDef = do
-  name <- parseFunctionHeader
-  body <- parseFunctionBody
+pFunction :: Parser Function
+pFunction = do
+  name <- pFunctionHeader
+  body <- pFunctionBody
   return $ Function name body
 
-parseFunctionHeader :: Parser Text
-parseFunctionHeader = do
+pFunctionHeader :: Parser Text
+pFunctionHeader = do
   void $ matchToken KwInt
   name <- identifier
-  void $ parseParams
+  void $ pParams
   return name <?> "function header"
 
-parseParams :: Parser ()
-parseParams = between 
-  (matchToken LParen) 
-  (matchToken RParen)
+pParams :: Parser ()
+pParams = parens
   (void (matchToken KwVoid <?> "void")) <?> "function parameters"
 
-parseFunctionBody :: Parser Statement
-parseFunctionBody = between 
+pFunctionBody :: Parser Statement
+pFunctionBody = between 
   (matchToken LBrace)
   (matchToken RBrace)
-  parseStatement <?> "function body"
+  pStatement <?> "function body"
 
--- Statement parsers
-parseStatement :: Parser Statement
-parseStatement = choice
-  [ parseReturn
+pStatement :: Parser Statement
+pStatement = choice
+  [ pReturn
   ] <?> "statement"
 
-parseReturn :: Parser Statement
-parseReturn = do
+pReturn :: Parser Statement
+pReturn = do
   void (matchToken KwReturn <?> "return keyword")
-  expr <- parseExpr
+  expr <- pExpr
   void (matchToken Semicolon <?> "semicolon")
   return $ Return expr
 
--- Expression parsers
-parseExpr :: Parser Expr
-parseExpr = dbg "expr" $ parseTerm
+pExpr :: Parser Expr  
+pExpr = makeExprParser pTerm operatorTable
 
-parseTerm :: Parser Expr
-parseTerm = dbg "term" $ choice
-  [ parens parseExpr
-  , parseUnary
+pTerm :: Parser Expr
+pTerm = choice
+  [ parens pExpr
   , Constant <$> number
+  , pUnary
+  ]
+
+pUnary :: Parser Expr
+pUnary = try $ do
+  op <- choice
+    [ Complement <$ symbol Tilde
+    , Negate     <$ symbol Hyphen
+    ]
+  Unary op <$> pTerm
+
+-- Operator table with precedence levels
+operatorTable :: [[Operator Parser Expr]]
+operatorTable =
+  [
+    [ InfixL (Binary Multiply   <$ symbol Star)
+    , InfixL (Binary Divide     <$ symbol Slash) 
+    , InfixL (Binary Remainder  <$ symbol Percent)
+    ]
+  , [ InfixL (Binary Add        <$ symbol Plus)
+    , InfixL (Binary Subtract   <$ symbol Hyphen)
+    ]
   ]
 
 parens :: Parser a -> Parser a
@@ -85,44 +100,26 @@ parens = between
   (matchToken LParen)
   (matchToken RParen)
 
-parseUnary :: Parser Expr
-parseUnary = dbg "unary" $ do
-  op <- pUnaryOp
-  expr <- parseTerm
-  case op of
-    Tilde -> 
-      pure $ Unary Complement expr
-    Hyphen -> 
-      pure $ Unary Negate expr
-    DoubleHyphen -> 
-      customFailure $ UnexpectedToken DoubleHyphen "Not yet implemented"
-    badTok -> 
-      customFailure $ UnexpectedToken badTok "No."
+-- | Match a token and provide error context 
+symbol :: CToken -> Parser CToken
+symbol tok = matchToken tok <?> show tok
 
-pUnaryOp :: Parser CToken
-pUnaryOp = (matchToken Tilde <?> "bitwise complement operator")
-  <|> (matchToken Hyphen <?> "negation operator")
-  <|> (matchToken DoubleHyphen <?> "decrement operator")
-
--- Token level parsers
-matchToken :: CToken -> Parser CToken
-matchToken expected = token test expectedSet <?> show expected
-  where
-    test x = if x == expected 
-             then Just x 
-             else Nothing
-    expectedSet = Set.singleton $ Tokens (expected :| [])
-
-identifier :: Parser Text
-identifier = token test expectedSet <?> "identifier"
-  where
-    test (Identifier t) = Just t
-    test _ = Nothing
-    expectedSet = Set.singleton $ Label ('i' :| "dentifier")
+matchToken :: CToken -> Parser CToken 
+matchToken expected = matchWith 
+  (\x -> if x == expected then Just x else Nothing)
+  (show expected)
 
 number :: Parser Int
-number = token test expectedSet <?> "number"
-  where
-    test (Number n) = Just n
-    test _ = Nothing
-    expectedSet = Set.singleton $ Label ('n' :| "umber")
+number = matchWith (\case 
+    Number n -> Just n
+    _ -> Nothing) "number"
+
+identifier :: Parser Text
+identifier = matchWith (\case
+    Identifier t -> Just t
+    _ -> Nothing) "identifier"
+
+-- Common abstraction for token matching
+matchWith :: (CToken -> Maybe a) -> String -> Parser a
+matchWith f tag = 
+  token f (Set.singleton $ Label (NE.fromList tag)) <?> tag
