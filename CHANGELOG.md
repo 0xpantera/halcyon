@@ -71,3 +71,21 @@
 - Proper handling of division and remainder with EAX/EDX registers
 - Sign extension support using cdq instruction
 - Updated instruction fix-up pass for binary operation constraints
+
+## 0.4.0.0 -- 2024-12-03
+
+### Added
+- Hierarchical modules for better code organization:
+  - Halcyon.Core
+  - Halcyon.Frontend  
+  - Halcyon.Backend
+  - Halcyon.Driver
+
+### Changed
+- Split Driver.Pipeline into focused modules:
+  - Driver.Stages for pure compilation stages
+  - Driver.External for GCC interactions 
+  - Driver.Output for handling stage results
+  - Driver.Pipeline remains as high-level orchestration
+- Reorganized module exports in cabal file
+- Improved module documentation and organization

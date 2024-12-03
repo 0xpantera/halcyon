@@ -3,12 +3,11 @@ module Test.Pipeline (pipelineSpecs) where
 
 import Test.Hspec
 
-import Halcyon.Backend.Codegen (gen)
+import Halcyon.Backend (gen)
 import Halcyon.Core.Assembly
-import Halcyon.Core.TackyGen (genTacky)
-import Halcyon.Frontend.Parse (parseTokens)
-import Halcyon.Frontend.Lexer (lexer)
-import Halcyon.Core.Monad
+import Halcyon.Core (genTacky, runCompiler, liftLexResult, liftParseResult)
+import Halcyon.Frontend (parseTokens, lexer)
+-- import Halcyon.Core.Monad
 import Text.Megaparsec (parse)
 
 pipelineSpecs :: Spec

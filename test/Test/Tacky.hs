@@ -2,10 +2,9 @@
 module Test.Tacky (tackySpecs) where
 
 import Test.Hspec
-import Halcyon.Core.TackyGen (genTacky)
+import Halcyon.Core (genTacky, runCompiler)
 import Halcyon.Core.Ast qualified as Ast
 import Halcyon.Core.Tacky qualified as Tacky
-import Halcyon.Core.Monad (runCompiler)
 
 tackySpecs :: Spec
 tackySpecs = describe "TACKY Generation" $ do

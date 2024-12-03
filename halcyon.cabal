@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               halcyon
-version:            0.3.0.0
+version:            0.4.0.0
 -- synopsis:
 -- description:
 license:            BSD-3-Clause
@@ -19,22 +19,36 @@ common warnings
 library
     import:           warnings
     exposed-modules:
-          Halcyon
-        , Halcyon.Core.Settings
-        , Halcyon.Core.Ast
+        -- Main module
+        Halcyon
+        -- Hierarchical modules
+        , Halcyon.Core
+        , Halcyon.Frontend
+        , Halcyon.Backend 
+        , Halcyon.Driver
+        -- Core types (needed for qualified imports)
         , Halcyon.Core.Assembly
+        , Halcyon.Core.Ast
+        , Halcyon.Core.Tacky
+    other-modules:
+        -- Core internals
+        Halcyon.Core.Settings
         , Halcyon.Core.Monad
-        , Halcyon.Core.Tacky 
         , Halcyon.Core.TackyGen
+        -- Frontend internals  
         , Halcyon.Frontend.Lexer
         , Halcyon.Frontend.Parse
         , Halcyon.Frontend.Tokens
+        -- Backend internals
         , Halcyon.Backend.Codegen
         , Halcyon.Backend.Emit
         , Halcyon.Backend.ReplacePseudos
+        -- Driver internals
         , Halcyon.Driver.Cli
         , Halcyon.Driver.Pipeline
-    other-modules:
+        , Halcyon.Driver.External
+        , Halcyon.Driver.Output
+        , Halcyon.Driver.Stages
     -- other-extensions:
     build-depends:    base ^>=4.20.0.0
         , bytestring
@@ -71,6 +85,7 @@ test-suite halcyon-test
         , Test.Tacky
         , Test.Assembly
         , Test.Pipeline
+        , Test.Common
     -- other-extensions:
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test

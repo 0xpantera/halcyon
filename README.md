@@ -8,19 +8,34 @@ The compiler currently handles C programs with unary operators and integer const
 
 ```c
 int main(void) {
-    return ~(-42);
+    return -((42 * 10) / (2 + 3));  // Returns -84
 }
 ```
 
 ### Compilation Pipeline
 
-The compiler processes source code through the following stages:
+The compiler is organized into several major subsystems:
 
-1. **Lexical Analysis**: Breaks source code into a sequence of tokens
-2. **Parsing**: Converts tokens into an Abstract Syntax Tree (AST)
-3. **TACKY Generation**: Transforms AST into TACKY intermediate representation
-4. **Code Generation**: Transforms AST into x86_64 assembly
-5. **Code Emission**: Outputs the assembly code to an executable
+- **Frontend** - Parsing and analysis
+  - Lexical analysis (breaks source into tokens)
+  - Parsing (converts tokens to AST)
+  - Token definitions
+
+- **Core** - Core data types and compiler infrastructure
+  - AST, Assembly, and TACKY intermediate representations
+  - Compiler monad and error handling
+
+- **Backend** - Code generation
+  - TACKY to assembly conversion
+  - Register allocation
+  - Assembly output
+
+- **Driver** - Pipeline coordination
+  - Command line interface
+  - Compilation pipeline stages
+  - External tool integration (GCC for preprocessing and linking)
+
+Each subsystem is organized as a hierarchical module that provides a clean interface to its functionality while hiding implementation details.
 
 ### Internal Representations
 
@@ -85,10 +100,12 @@ Programs are represented internally using a series of increasingly lower-level d
   ├── lib/                           # Main library code
   │   ├── Halcyon.hs                 # Library entry point
   │   └── Halcyon/                   # Core modules
+  │       ├── Backend.hs             # Backend subsystem interface
   │       ├── Backend/               # Code generation and emission
   │       │   ├── Codegen.hs         # TACKY to Assembly conversion
   │       │   ├── Emit.hs            # Assembly to text output
   │       │   └── ReplacePseudos.hs  # Register/stack allocation
+  │       ├── Core.hs                # Core subsystem interface
   │       ├── Core/                  # Core data types and utilities
   │       │   ├── Assembly.hs        # Assembly representation
   │       │   ├── Ast.hs             # C language AST
@@ -96,9 +113,11 @@ Programs are represented internally using a series of increasingly lower-level d
   │       │   ├── Settings.hs        # Compiler settings and types
   │       │   ├── Tacky.hs           # TACKY IR definition
   │       │   └── TackyGen.hs        # AST to TACKY transformation
+  │       ├── Driver.hs              # Driver subsystem interface
   │       ├── Driver/                # Compiler driver
   │       │   ├── Cli.hs             # Command line interface
   │       │   └── Pipeline.hs        # Compilation pipeline
+  │       ├── Frontend.hs          # Frontend subsystem interface
   │       └── Frontend/              # Parsing and analysis
   │           ├── Lexer.hs           # Lexical analysis
   │           ├── Parse.hs           # Parsing

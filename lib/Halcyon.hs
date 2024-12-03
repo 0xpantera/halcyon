@@ -7,13 +7,10 @@ module Halcyon
   , Target(..)
   , Program(..)
     -- * Compiler Pipeline
-  , module Halcyon.Driver.Pipeline
-    -- * Command Line Interface
-  , module Halcyon.Driver.Cli
+  , module Halcyon.Driver
   ) where
 
 import Halcyon.Core.Settings
 import Halcyon.Core.Ast (Program(..))
-import Halcyon.Driver.Pipeline
-import Halcyon.Driver.Cli
-import Halcyon.Frontend.Parse ( parseTokens )
+import Halcyon.Driver
+import Halcyon.Frontend ( parseTokens )

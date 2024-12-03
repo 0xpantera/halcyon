@@ -2,7 +2,7 @@
 module Test.Assembly (assemblySpecs) where
 
 import Test.Hspec
-import Halcyon.Backend.Codegen (gen)
+import Halcyon.Backend (gen)
 import Halcyon.Core.Assembly qualified as Asm
 import Halcyon.Core.Tacky qualified as Tacky
 

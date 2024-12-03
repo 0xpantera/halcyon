@@ -9,10 +9,8 @@ import Control.Monad (void)
 import Control.Monad.Combinators.Expr
 import Data.Text (Text)
 import qualified Data.Set as Set
-import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import Text.Megaparsec
-import Text.Megaparsec.Debug (dbg)
 
 import Halcyon.Frontend.Tokens
 import Halcyon.Core.Ast

@@ -1,6 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Test.Common where
 
+import Data.Text (Text)
 import Halcyon.Core.Ast as Ast
+
 
 -- Smart constructors for building test cases
 makeMainFunction :: Statement -> Program
