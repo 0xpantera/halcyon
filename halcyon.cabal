@@ -85,6 +85,7 @@ test-suite halcyon-test
         , Test.Tacky
         , Test.Assembly
         , Test.Pipeline
+        , Test.Common
     -- other-extensions:
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test

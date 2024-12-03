@@ -2,8 +2,7 @@
 module Test.Parser (parserSpecs) where
 
 import Test.Hspec
-import Halcyon.Frontend.Parse (parseTokens)
-import Halcyon.Frontend.Tokens
+import Halcyon.Frontend (parseTokens, CToken(..))
 import Halcyon.Core.Ast
 
 parserSpecs :: Spec

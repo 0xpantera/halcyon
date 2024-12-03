@@ -3,8 +3,7 @@ module Test.Lexer (lexerSpecs) where
 
 import Test.Hspec
 import Text.Megaparsec (parse)
-import Halcyon.Frontend.Lexer (lexer)
-import Halcyon.Frontend.Tokens
+import Halcyon.Frontend (lexer, CToken(..))
 
 lexerSpecs :: Spec 
 lexerSpecs = describe "Lexer" $ do
