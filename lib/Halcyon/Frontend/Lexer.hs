@@ -84,6 +84,15 @@ pToken = choice
   , pSymbol "*"  Star
   , pSymbol "/"  Slash
   , pSymbol "%"  Percent
+  , pSymbol "&&" LogicalAnd
+  , pSymbol "||" LogicalOr
+  , pSymbol "==" DoubleEqual
+  , pSymbol "!=" NotEqual
+  , pSymbol "<=" LessOrEqual
+  , pSymbol ">=" GreaterOrEqual
+  , pSymbol "!" Bang
+  , pSymbol "<" LessThan
+  , pSymbol ">" GreaterThan
   , pIdentifier
   , pNumber
   ] <?> "token"

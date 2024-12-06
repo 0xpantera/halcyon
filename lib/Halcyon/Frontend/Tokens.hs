@@ -40,6 +40,15 @@ data CToken
   | Star
   | Slash
   | Percent
+  | Bang -- !
+  | LogicalAnd -- &&
+  | LogicalOr -- ||
+  | DoubleEqual -- ==
+  | NotEqual -- !=
+  | LessThan
+  | GreaterThan
+  | LessOrEqual
+  | GreaterOrEqual
   deriving (Eq, Show, Ord)
 
 -- | Common syntax errors that can occur in both lexing and parsing
@@ -124,6 +133,15 @@ instance ShowErrorComponent CToken where
     Star -> "star '*'"
     Slash -> "slash '/'"
     Percent -> "percent '%'"
+    Bang -> "bang '!'"
+    LogicalAnd -> "logical and '&&'"
+    LogicalOr -> "logical or '||'"
+    DoubleEqual -> "double equal '=='"
+    NotEqual -> "not equal '!='"
+    LessThan -> "less than '<'"
+    GreaterThan -> "greater than '>'"
+    LessOrEqual -> "less than or equal '<='"
+    GreaterOrEqual -> "greater than or equal '>='"
 
 -- For better error messages - shows a preview of tokens
 instance VisualStream [CToken] where
