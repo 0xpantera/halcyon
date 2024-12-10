@@ -17,10 +17,12 @@ data Expr
   | Binary BinaryOp Expr Expr
   deriving (Eq, Show)
 
-data UnaryOp = Complement | Negate
+data UnaryOp = Complement | Negate | Not
   deriving (Eq, Show)
 
 data BinaryOp = Add | Subtract | Multiply | Divide | Remainder
+  | And | Or | Equal | NotEqual | LessThan | LessOrEqual
+  | GreaterThan | GreaterOrEqual
   deriving (Eq, Show)
 
 
@@ -33,8 +35,11 @@ exp
   = Constant(int)
   | Unary(unary_operator, exp)
   | Binary(binary_operator, exp, exp)
-unary_operator = Complement | Negate
-binary_operator = Add | Subtract | Multiply | Divide | Remainder
+unary_operator = Complement | Negate | Not
+binary_operator = Add | Subtract | Multiply | Divide | Remainder 
+| And | Or | Equal | NotEqual | LessThan | LessOrEqual
+| GreaterThan | GreaterOrEqual
+
 -}
 
 -- Formal Grammar in EBNF
