@@ -13,25 +13,25 @@ import qualified Data.List.NonEmpty as NE
 import Text.Megaparsec
 
 import Halcyon.Frontend.Tokens
-import Halcyon.Core.Ast
+import Halcyon.Core.Ast qualified as Ast
 
 -- Type aliases to make signatures cleaner
 type Parser = Parsec CParseError [CToken]
 type HalcyonParseError = ParseErrorBundle [CToken] CParseError
-type ParseResult = Either HalcyonParseError Program
+type ParseResult = Either HalcyonParseError Ast.Program
 
 -- Main entry point
 parseTokens :: [CToken] -> ParseResult
 parseTokens ctokens = runParser (pProgram <* eof) "" ctokens
 
-pProgram :: Parser Program
-pProgram = Program <$> pFunction <?> "program"
+pProgram :: Parser Ast.Program
+pProgram = Ast.Program <$> pFunction <?> "program"
 
-pFunction :: Parser Function
+pFunction :: Parser Ast.Function
 pFunction = do
   name <- pFunctionHeader
   body <- pFunctionBody
-  return $ Function name body
+  return $ Ast.Function name body
 
 pFunctionHeader :: Parser Text
 pFunctionHeader = do
@@ -44,52 +44,75 @@ pParams :: Parser ()
 pParams = parens
   (void (matchToken KwVoid <?> "void")) <?> "function parameters"
 
-pFunctionBody :: Parser Statement
+pFunctionBody :: Parser Ast.Statement
 pFunctionBody = between 
   (matchToken LBrace)
   (matchToken RBrace)
   pStatement <?> "function body"
 
-pStatement :: Parser Statement
+pStatement :: Parser Ast.Statement
 pStatement = choice
   [ pReturn
   ] <?> "statement"
 
-pReturn :: Parser Statement
+pReturn :: Parser Ast.Statement
 pReturn = do
   void (matchToken KwReturn <?> "return keyword")
   expr <- pExpr
   void (matchToken Semicolon <?> "semicolon")
-  return $ Return expr
+  return $ Ast.Return expr
 
-pExpr :: Parser Expr  
+pExpr :: Parser Ast.Expr  
 pExpr = makeExprParser pTerm operatorTable
 
-pTerm :: Parser Expr
+pTerm :: Parser Ast.Expr
 pTerm = choice
   [ parens pExpr
-  , Constant <$> number
+  , Ast.Constant <$> number
   , pUnary
   ]
 
-pUnary :: Parser Expr
+pUnary :: Parser Ast.Expr
 pUnary = try $ do
   op <- choice
-    [ Complement <$ symbol Tilde
-    , Negate     <$ symbol Hyphen
+    [ Ast.Complement <$ symbol Tilde
+    , Ast.Negate     <$ symbol Hyphen
+    , Ast.Not        <$ symbol Bang
     ]
-  Unary op <$> pTerm
+  Ast.Unary op <$> pTerm
+
+
+{-
+These operators have lower
+precedence than the ones before, and they’re all left-associative.
+Among the new operators, <, <=, >, and >= have the highest precedence,
+followed by the equality operators, == and !=. The && operator has lower
+precedence than the equality operators, and || has the lowest precedence
+of all. 
+-}
 
 -- Operator table with precedence levels
-operatorTable :: [[Operator Parser Expr]]
+operatorTable :: [[Operator Parser Ast.Expr]]
 operatorTable =
   [
-    [ InfixL (Binary Multiply   <$ symbol Star)
-    , InfixL (Binary Divide     <$ symbol Slash) 
-    , InfixL (Binary Remainder  <$ symbol Percent)
+    [ InfixL (Ast.Binary Ast.Multiply    <$ symbol Star)
+    , InfixL (Ast.Binary Ast.Divide      <$ symbol Slash) 
+    , InfixL (Ast.Binary Ast.Remainder   <$ symbol Percent)
     ]
-  , [ InfixL (Binary Add        <$ symbol Plus)
-    , InfixL (Binary Subtract   <$ symbol Hyphen)
+  , [ InfixL (Ast.Binary Ast.Add         <$ symbol Plus)
+    , InfixL (Ast.Binary Ast.Subtract    <$ symbol Hyphen)
+    ]
+  , [ InfixL (Ast.Binary Ast.LessThan    <$ symbol LessThan)
+    , InfixL (Ast.Binary Ast.LessOrEqual <$ symbol LessOrEqual)
+    , InfixL (Ast.Binary Ast.GreaterThan <$ symbol GreaterOrEqual)
+    , InfixL (Ast.Binary Ast.GreaterOrEqual <$ symbol GreaterOrEqual)
+    ]
+  , [ InfixL (Ast.Binary Ast.Equal <$ symbol DoubleEqual)
+    , InfixL (Ast.Binary Ast.NotEqual <$ symbol NotEqual)
+    ]
+  , [ InfixL (Ast.Binary Ast.And <$ symbol LogicalAnd)
+    ]
+  , [ InfixL (Ast.Binary Ast.Or <$ symbol LogicalOr)
     ]
   ]
 
