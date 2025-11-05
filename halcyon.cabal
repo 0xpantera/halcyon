@@ -1,4 +1,4 @@
-cabal-version:      3.0
+cabal-version:      3.14
 name:               halcyon
 version:            0.4.0.0
 -- synopsis:
@@ -24,7 +24,7 @@ library
         -- Hierarchical modules
         , Halcyon.Core
         , Halcyon.Frontend
-        , Halcyon.Backend 
+        , Halcyon.Backend
         , Halcyon.Driver
         -- Core types (needed for qualified imports)
         , Halcyon.Core.Assembly
@@ -35,7 +35,7 @@ library
         Halcyon.Core.Settings
         , Halcyon.Core.Monad
         , Halcyon.Core.TackyGen
-        -- Frontend internals  
+        -- Frontend internals
         , Halcyon.Frontend.Lexer
         , Halcyon.Frontend.Parse
         , Halcyon.Frontend.Tokens
@@ -50,7 +50,7 @@ library
         , Halcyon.Driver.Output
         , Halcyon.Driver.Stages
     -- other-extensions:
-    build-depends:    base ^>=4.20.0.0
+    build-depends:    base ^>=4.21.0.0
         , bytestring
         , containers
         , directory
@@ -71,7 +71,7 @@ executable halcyon
     -- other-modules:
     -- other-extensions:
     build-depends:
-          base ^>=4.20.0.0
+          base ^>=4.21.0.0
         , halcyon
     hs-source-dirs:   app
     default-language: GHC2024
@@ -91,14 +91,14 @@ test-suite halcyon-test
     hs-source-dirs:   test
     main-is:          Main.hs
     build-depends:
-          base ^>=4.20.0.0
+          base ^>=4.21.0.0
         , halcyon
-        , tasty ^>=1.4
-        , tasty-hspec ^>=1.2
-        , tasty-hedgehog ^>=1.4
-        , tasty-golden ^>=2.3
-        , hedgehog ^>=1.4
-        , hspec ^>=2.11
+        , tasty ^>=1.4 && <2.0
+        , tasty-hspec >=1.2 && <2.0
+        , tasty-hedgehog >=1.4 && <2.0
+        , tasty-golden >=2.3 && <3.0
+        , hedgehog >=1.4 && <2.0
+        , hspec >=2.11 && <3.0
         , text
         , megaparsec
         , directory
