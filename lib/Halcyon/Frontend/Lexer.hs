@@ -1,24 +1,28 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Halcyon.Frontend.Lexer where
 
 import Data.Functor (($>))
 import Data.Text (Text)
+import Data.Text qualified as T
+import Halcyon.Frontend.Tokens
 import Text.Megaparsec
 import Text.Megaparsec.Char
-import qualified Text.Megaparsec.Char.Lexer as L
-import qualified Data.Text as T
-
-import Halcyon.Frontend.Tokens
+import Text.Megaparsec.Char.Lexer qualified as L
 
 -- Parser type
 type Lexer = Parsec CLexError Text
 
+maxInt32 :: Int
+maxInt32 = 2 ^ (31 :: Int) - 1
+
 -- Space consumer that handles newlines (used between tokens)
 scn :: Lexer ()
-scn = L.space
-  space1  
-  (L.skipLineComment "//")
-  (L.skipBlockComment "/*" "*/")
+scn =
+  L.space
+    space1
+    (L.skipLineComment "//")
+    (L.skipBlockComment "/*" "*/")
 
 lexeme :: Lexer a -> Lexer a
 lexeme = L.lexeme scn
@@ -30,23 +34,27 @@ symbol = L.symbol scn
 pKeyword :: Text -> Lexer CToken
 pKeyword kw = lexeme $ try $ do
   _ <- string kw
-  notFollowedBy alphaNumChar <?> 
-    "end of keyword '" <> T.unpack kw <> "'"
+  notFollowedBy alphaNumChar
+    <?> "end of keyword '" <> T.unpack kw <> "'"
   return $ case kw of
-    "int"    -> KwInt
-    "void"   -> KwVoid
+    "int" -> KwInt
+    "void" -> KwVoid
     "return" -> KwReturn
-    _        -> error "Invalid keyword"
+    _ -> error "Invalid keyword"
 
 pIdentifier :: Lexer CToken
 pIdentifier = lexeme $ try $ do
   first <- letterChar <|> char '_'
   rest <- many (alphaNumChar <|> char '_')
-  let ident = T.pack (first:rest)
+  let ident = T.pack (first : rest)
   -- Check for valid identifier
   if T.length ident > 31
-    then customFailure $ LexicalError $ InvalidSequence ident 
-      "identifier must be 31 characters or less"
+    then
+      customFailure $
+        LexicalError $
+          InvalidSequence
+            ident
+            "identifier must be 31 characters or less"
     else return $ Identifier ident
 
 pNumber :: Lexer CToken
@@ -54,39 +62,45 @@ pNumber = lexeme $ try $ do
   digits <- some digitChar
   followedByLetter <- lookAhead (optional alphaNumChar)
   case followedByLetter of
-    Just c -> customFailure $ MalformedNumber $ 
-      "Invalid character '" <> T.singleton c <> "' in number"
-    Nothing -> 
+    Just c ->
+      customFailure $
+        MalformedNumber $
+          "Invalid character '" <> T.singleton c <> "' in number"
+    Nothing ->
       let n = read digits
-      in if n > (2^31 - 1) 
-         then customFailure $ MalformedNumber "Integer too large"
-         else return $ Number n
+       in if n > maxInt32
+            then customFailure $ MalformedNumber "Integer too large"
+            else return $ Number n
 
 pSymbol :: Text -> CToken -> Lexer CToken
-pSymbol sym tok = lexeme $ try $ 
-  ((string sym $> tok) <?> T.unpack sym)
+pSymbol sym tok =
+  lexeme $
+    try $
+      ((string sym $> tok) <?> T.unpack sym)
 
 -- Parser for any single token
 pToken :: Lexer CToken
-pToken = choice
-  [ pKeyword "int"
-  , pKeyword "void"
-  , pKeyword "return"
-  , pSymbol "("  LParen
-  , pSymbol ")"  RParen
-  , pSymbol "{"  LBrace
-  , pSymbol "}"  RBrace
-  , pSymbol ";"  Semicolon
-  , pSymbol "-"  Hyphen
-  , pSymbol "--" DoubleHyphen
-  , pSymbol "~"  Tilde
-  , pSymbol "+"  Plus
-  , pSymbol "*"  Star
-  , pSymbol "/"  Slash
-  , pSymbol "%"  Percent
-  , pIdentifier
-  , pNumber
-  ] <?> "token"
+pToken =
+  choice
+    [ pKeyword "int",
+      pKeyword "void",
+      pKeyword "return",
+      pSymbol "(" LParen,
+      pSymbol ")" RParen,
+      pSymbol "{" LBrace,
+      pSymbol "}" RBrace,
+      pSymbol ";" Semicolon,
+      pSymbol "--" DoubleHyphen,
+      pSymbol "-" Hyphen,
+      pSymbol "~" Tilde,
+      pSymbol "+" Plus,
+      pSymbol "*" Star,
+      pSymbol "/" Slash,
+      pSymbol "%" Percent,
+      pIdentifier,
+      pNumber
+    ]
+    <?> "token"
 
 -- Parse all tokens in a file
 lexer :: Lexer [CToken]
