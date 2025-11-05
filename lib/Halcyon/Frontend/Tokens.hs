@@ -1,34 +1,39 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-module Halcyon.Frontend.Tokens ( -- * Token Types
-    CToken(..)
-    -- * Error Types
-  , CLexError(..)
-  , CParseError(..)
-  , SyntaxError(..)
-    -- * Error Display
-  , formatLexError
-  , formatParseError
-  ) where
 
-import Data.Text
-import qualified Data.Text as T
+module Halcyon.Frontend.Tokens
+  ( -- * Token Types
+    CToken (..),
+
+    -- * Error Types
+    CLexError (..),
+    CParseError (..),
+    SyntaxError (..),
+
+    -- * Error Display
+    formatLexError,
+    formatParseError,
+  )
+where
+
+import Data.List.NonEmpty qualified as NE
 import Data.Proxy
+import Data.Text
+import Data.Text qualified as T
 import Text.Megaparsec
-import qualified Data.List.NonEmpty as NE
 
 -- | Tokens produced by lexical analysis
 data CToken
-  -- Values
-  = Identifier Text
+  = -- Values
+    Identifier Text
   | Number Int
-  -- Keywords  
-  | KwInt
+  | -- Keywords
+    KwInt
   | KwVoid
   | KwReturn
-  -- Punctuation
-  | LParen
+  | -- Punctuation
+    LParen
   | RParen
   | LBrace
   | RBrace
@@ -44,39 +49,51 @@ data CToken
 
 -- | Common syntax errors that can occur in both lexing and parsing
 data SyntaxError
-  = UnexpectedChar Char Text  -- ^ Character and context
-  | UnexpectedEnd Text        -- ^ What was being parsed
-  | InvalidSequence Text Text -- ^ What was found and what was expected
+  = -- | Character and context
+    UnexpectedChar Char Text
+  | -- | What was being parsed
+    UnexpectedEnd Text
+  | -- | What was found and what was expected
+    InvalidSequence Text Text
   deriving (Eq, Ord, Show)
 
 -- | Errors specific to lexical analysis
 data CLexError
-  = InvalidCharacter Char            -- ^ Character not allowed in C
-  | MalformedNumber Text            -- ^ Invalid numeric literal
-  | UnterminatedLiteral Text        -- ^ String/char literal not closed
-  | InvalidEscape Text              -- ^ Invalid escape sequence
-  | LexicalError SyntaxError        -- ^ Common syntax errors
+  = -- | Character not allowed in C
+    InvalidCharacter Char
+  | -- | Invalid numeric literal
+    MalformedNumber Text
+  | -- | String/char literal not closed
+    UnterminatedLiteral Text
+  | -- | Invalid escape sequence
+    InvalidEscape Text
+  | -- | Common syntax errors
+    LexicalError SyntaxError
   deriving (Eq, Ord, Show)
 
 -- | Errors specific to parsing
 data CParseError
-  = UnexpectedToken CToken Text     -- ^ Found unexpected token
-  | MissingToken CToken Text        -- ^ Required token not found 
-  | InvalidConstruct Text           -- ^ Invalid syntax construct
-  | ParseError SyntaxError          -- ^ Common syntax errors
+  = -- | Found unexpected token
+    UnexpectedToken CToken Text
+  | -- | Required token not found
+    MissingToken CToken Text
+  | -- | Invalid syntax construct
+    InvalidConstruct Text
+  | -- | Common syntax errors
+    ParseError SyntaxError
   deriving (Eq, Ord, Show)
 
 instance ShowErrorComponent CLexError where
   showErrorComponent = T.unpack . formatLexError
 
-instance ShowErrorComponent CParseError where  
+instance ShowErrorComponent CParseError where
   showErrorComponent = T.unpack . formatParseError
 
 formatLexError :: CLexError -> Text
 formatLexError = \case
-  InvalidCharacter c -> 
+  InvalidCharacter c ->
     "Invalid character in source: " <> T.singleton c
-  MalformedNumber t -> 
+  MalformedNumber t ->
     "Malformed number literal: " <> t
   UnterminatedLiteral t ->
     "Unterminated literal: " <> t
@@ -84,12 +101,12 @@ formatLexError = \case
     "Invalid escape sequence: " <> t
   LexicalError e -> formatSyntaxError e
 
-formatParseError :: CParseError -> Text  
+formatParseError :: CParseError -> Text
 formatParseError = \case
   UnexpectedToken tok ctx ->
-    "Unexpected " <> T.pack (show tok) <> " in " <> ctx
+    "Unexpected " <> T.pack (Prelude.show tok) <> " in " <> ctx
   MissingToken tok ctx ->
-    "Missing " <> T.pack (show tok) <> " in " <> ctx
+    "Missing " <> T.pack (Prelude.show tok) <> " in " <> ctx
   InvalidConstruct ctx ->
     "Invalid syntax in " <> ctx
   ParseError e -> formatSyntaxError e
@@ -111,7 +128,7 @@ instance ShowErrorComponent CToken where
     KwVoid -> "keyword 'void'"
     KwReturn -> "keyword 'return'"
     Identifier t -> "identifier '" <> T.unpack t <> "'"
-    Number n -> "number " <> show n
+    Number n -> "number " <> Prelude.show n
     LParen -> "left parenthesis '('"
     RParen -> "right parenthesis ')'"
     LBrace -> "left brace '{'"
@@ -120,7 +137,7 @@ instance ShowErrorComponent CToken where
     Tilde -> "tilde '~'"
     Hyphen -> "hyphen '-'"
     DoubleHyphen -> "double hyphen '--'"
-    Plus -> "pluse '+'"
+    Plus -> "plus '+'"
     Star -> "star '*'"
     Slash -> "slash '/'"
     Percent -> "percent '%'"
@@ -128,7 +145,7 @@ instance ShowErrorComponent CToken where
 -- For better error messages - shows a preview of tokens
 instance VisualStream [CToken] where
   showTokens :: Proxy [CToken] -> NE.NonEmpty (Token [CToken]) -> String
-  showTokens Proxy = show . NE.take 10
+  showTokens Proxy = Prelude.show . NE.take 10
 
   tokensLength :: Proxy [CToken] -> NE.NonEmpty (Token [CToken]) -> Int
   tokensLength Proxy = NE.length
@@ -136,13 +153,13 @@ instance VisualStream [CToken] where
 -- | Allows megaparsec to track position in token stream
 instance TraversableStream [CToken] where
   reachOffset :: Int -> PosState [CToken] -> (Maybe String, PosState [CToken])
-  reachOffset o PosState{..} =
-      ( Just ""
-      , PosState
-          { pstateInput = Prelude.drop (o - pstateOffset) pstateInput
-          , pstateOffset = o
-          , pstateSourcePos = pstateSourcePos
-          , pstateTabWidth = pstateTabWidth
-          , pstateLinePrefix = ""
-          }
-      )
+  reachOffset o PosState {..} =
+    ( Just "",
+      PosState
+        { pstateInput = Prelude.drop (o - pstateOffset) pstateInput,
+          pstateOffset = o,
+          pstateSourcePos = pstateSourcePos,
+          pstateTabWidth = pstateTabWidth,
+          pstateLinePrefix = ""
+        }
+    )
